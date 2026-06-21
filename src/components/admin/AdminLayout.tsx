@@ -16,9 +16,11 @@ import {
   TableProperties,
 } from "lucide-react";
 import { useAuth } from "@/lib/store/auth";
+import { useOrders } from "@/lib/store/orders";
 import { signOutUser } from "@/lib/auth/session";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, useRef, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
+import { Switch } from "@/components/ui/switch";
 
 const nav = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -40,6 +42,48 @@ export function AdminLayout({ children }: { children?: ReactNode }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [drawer, setDrawer] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
+  const orders = useOrders((s) => s.orders);
+  const lastOrderTimeRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!orders.length) return;
+    
+    // Find the latest order timestamp
+    const latestTime = Math.max(...orders.map(o => o.createdAt));
+    
+    // If it's the first render (lastOrderTimeRef is 0), just set it and don't beep
+    if (lastOrderTimeRef.current === 0) {
+      lastOrderTimeRef.current = latestTime;
+      return;
+    }
+
+    // If there's a newer order, beep
+    if (latestTime > lastOrderTimeRef.current) {
+      lastOrderTimeRef.current = latestTime;
+      
+      if (soundEnabled) {
+        try {
+          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 note
+          gain.gain.setValueAtTime(0.1, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+          
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + 0.5);
+        } catch (e) {
+          console.error("Failed to play notification sound", e);
+        }
+      }
+    }
+  }, [orders, soundEnabled]);
 
   useEffect(() => {
     if (!initialized) return;
@@ -107,7 +151,13 @@ export function AdminLayout({ children }: { children?: ReactNode }) {
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           <NavLinks />
         </nav>
-        <div className="p-3 border-t border-border">
+        <div className="p-3 border-t border-border space-y-2">
+          <div className="flex w-full items-center justify-between px-3 py-2 rounded-lg text-sm">
+            <span className="flex items-center gap-3">
+              Sound Alerts
+            </span>
+            <Switch checked={soundEnabled} onCheckedChange={setSoundEnabled} />
+          </div>
           <button
             onClick={handleSignOut}
             className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-secondary"
@@ -142,7 +192,13 @@ export function AdminLayout({ children }: { children?: ReactNode }) {
             <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
               <NavLinks onClick={() => setDrawer(false)} />
             </nav>
-            <div className="p-3 border-t border-border">
+            <div className="p-3 border-t border-border space-y-2">
+              <div className="flex w-full items-center justify-between px-3 py-2 rounded-lg text-sm">
+                <span className="flex items-center gap-3">
+                  Sound Alerts
+                </span>
+                <Switch checked={soundEnabled} onCheckedChange={setSoundEnabled} />
+              </div>
               <button
                 onClick={handleSignOut}
                 className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-secondary"

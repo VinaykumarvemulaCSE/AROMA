@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,47 +7,33 @@ import { Label } from "@/components/ui/label";
 import { Plus, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { useStaff, type StaffMember } from "@/lib/store/staff";
 
 export const Route = createFileRoute("/admin/staff")({
   head: () => ({ meta: [{ title: "Staff — Aroma Admin" }] }),
   component: Staff,
 });
 
-type S = { name: string; role: string; email: string; phone: string; active: boolean };
-
 function Staff() {
-  const [rows, setRows] = useState<S[]>([
-    {
-      name: "Ramesh Kumar",
-      role: "Owner",
-      email: "owner@aroma.in",
-      phone: "+91 80195 51015",
-      active: true,
-    },
-    {
-      name: "Lakshmi N.",
-      role: "Manager",
-      email: "mgr@aroma.in",
-      phone: "+91 80195 51015",
-      active: true,
-    },
-    {
-      name: "Chef Suresh",
-      role: "Chef",
-      email: "chef@aroma.in",
-      phone: "+91 80195 51015",
-      active: true,
-    },
-    {
-      name: "Anil Reddy",
-      role: "Waiter",
-      email: "anil@aroma.in",
-      phone: "+91 80195 51015",
-      active: true,
-    },
-  ]);
+  const staff = useStaff((s) => s.staff);
+  const addStaff = useStaff((s) => s.addStaff);
+  const updateStaff = useStaff((s) => s.updateStaff);
+  const removeStaff = useStaff((s) => s.removeStaff);
+  const listenToStaff = useStaff((s) => s.listenToStaff);
+
+  useEffect(() => {
+    const unsub = listenToStaff();
+    return () => unsub();
+  }, [listenToStaff]);
+
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState<S>({ name: "", role: "Waiter", email: "", phone: "", active: true });
+  const [f, setF] = useState<Omit<StaffMember, "id">>({
+    name: "",
+    role: "Waiter",
+    email: "",
+    phone: "",
+    active: true,
+  });
 
   return (
     <AdminLayout>
@@ -74,19 +60,15 @@ function Staff() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((s) => (
-              <tr key={s.email} className="border-t border-border">
+            {staff.map((s) => (
+              <tr key={s.id} className="border-t border-border">
                 <td className="px-4 py-3 font-medium">{s.name}</td>
                 <td className="px-4 py-3">{s.role}</td>
                 <td className="px-4 py-3 text-muted-foreground">{s.email}</td>
                 <td className="px-4 py-3">{s.phone}</td>
                 <td className="px-4 py-3">
                   <button
-                    onClick={() =>
-                      setRows((a) =>
-                        a.map((x) => (x.email === s.email ? { ...x, active: !x.active } : x)),
-                      )
-                    }
+                    onClick={() => updateStaff(s.id, { active: !s.active })}
                     className={`text-xs px-2 py-1 rounded-full ${s.active ? "bg-sage/20 text-sage" : "bg-secondary"}`}
                   >
                     {s.active ? "Active" : "Inactive"}
@@ -96,8 +78,8 @@ function Staff() {
                   <Button
                     size="icon"
                     variant="ghost"
-                    onClick={() => {
-                      setRows((a) => a.filter((x) => x.email !== s.email));
+                    onClick={async () => {
+                      await removeStaff(s.id);
                       toast.success("Removed");
                     }}
                   >
@@ -116,10 +98,10 @@ function Staff() {
             <DialogTitle>Add staff member</DialogTitle>
           </DialogHeader>
           <form
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
               if (!f.name || !f.email) return;
-              setRows((a) => [f, ...a]);
+              await addStaff(f);
               toast.success("Added");
               setOpen(false);
             }}

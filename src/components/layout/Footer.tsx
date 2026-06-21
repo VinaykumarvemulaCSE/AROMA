@@ -4,8 +4,8 @@ import { cafeInfo } from "@/lib/format";
 
 export function Footer() {
   return (
-    <footer className="bg-primary text-primary-foreground mt-20">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 grid gap-10 md:grid-cols-4">
+    <footer className="bg-primary text-primary-foreground mt-12 md:mt-20 pb-20 md:pb-0">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 md:py-14 grid gap-8 sm:grid-cols-2 md:grid-cols-4">
         <div>
           <div className="flex items-center gap-2">
             <div className="grid place-items-center size-9 rounded-full bg-accent text-accent-foreground font-display font-bold">

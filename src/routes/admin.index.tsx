@@ -15,7 +15,7 @@ import {
 import { useMenu } from "@/lib/store/menu";
 import { useOrders } from "@/lib/store/orders";
 import { useReviews } from "@/lib/store/reviews";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { inr } from "@/lib/format";
 
 export const Route = createFileRoute("/admin/")({
@@ -28,16 +28,28 @@ function AdminDashboard() {
   const orders = useOrders((s) => s.orders);
   const reviews = useReviews((s) => s.reviews);
 
-  // --- KPI Calculations ---
-  const today = new Date().toDateString();
-  const todayOrders = useMemo(
-    () => orders.filter((o) => new Date(o.createdAt).toDateString() === today),
-    [orders],
+  const [dateFilter, setDateFilter] = useState<"today" | "7days" | "30days" | "all">("today");
+
+  const periodOrders = useMemo(() => {
+    const now = new Date();
+    return orders.filter((o) => {
+      const d = new Date(o.createdAt);
+      if (dateFilter === "today") return d.toDateString() === now.toDateString();
+      if (dateFilter === "7days") return now.getTime() - d.getTime() <= 7 * 24 * 3600 * 1000;
+      if (dateFilter === "30days") return now.getTime() - d.getTime() <= 30 * 24 * 3600 * 1000;
+      return true;
+    });
+  }, [orders, dateFilter]);
+
+  const periodRevenue = useMemo(
+    () =>
+      periodOrders.reduce(
+        (sum, o) => (!["Cancelled"].includes(o.status) ? sum + o.total : sum),
+        0,
+      ),
+    [periodOrders],
   );
-  const todayRevenue = useMemo(
-    () => todayOrders.reduce((sum, o) => sum + o.total, 0),
-    [todayOrders],
-  );
+
   const activeOrders = useMemo(
     () => orders.filter((o) => !["Delivered", "Cancelled"].includes(o.status)).length,
     [orders],
@@ -68,10 +80,10 @@ function AdminDashboard() {
     return days.map((d) => ({ d: d.label, revenue: d.revenue }));
   }, [orders]);
 
-  // Hourly orders today (rough distribution)
+  // Hourly orders for period (rough distribution, most useful for "today")
   const hourly = useMemo(() => {
     const hours: Record<number, number> = {};
-    todayOrders.forEach((o) => {
+    periodOrders.forEach((o) => {
       const h = new Date(o.createdAt).getHours();
       hours[h] = (hours[h] || 0) + 1;
     });
@@ -79,7 +91,7 @@ function AdminDashboard() {
       h: `${(i + 9) % 24}:00`,
       orders: hours[i + 9] || 0,
     }));
-  }, [todayOrders]);
+  }, [periodOrders]);
 
   const recentOrders = useMemo(() => orders.slice(0, 6), [orders]);
   const latestReviews = useMemo(
@@ -89,17 +101,31 @@ function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <h1 className="text-3xl font-display font-bold">Dashboard</h1>
-      <p className="text-muted-foreground">Welcome back. Here's how Aroma is doing today.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-display font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">Welcome back. Here's how Aroma is doing.</p>
+        </div>
+        <select
+          value={dateFilter}
+          onChange={(e) => setDateFilter(e.target.value as any)}
+          className="h-9 rounded-md border border-border bg-card px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          <option value="today">Today</option>
+          <option value="7days">Last 7 Days</option>
+          <option value="30days">Last 30 Days</option>
+          <option value="all">All Time</option>
+        </select>
+      </div>
 
       <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Kpi
           icon={<ShoppingBag />}
-          label="Orders today"
-          value={String(todayOrders.length)}
+          label="Orders (Period)"
+          value={String(periodOrders.length)}
           trend=""
         />
-        <Kpi icon={<IndianRupee />} label="Revenue today" value={inr(todayRevenue)} trend="" />
+        <Kpi icon={<IndianRupee />} label="Revenue (Period)" value={inr(periodRevenue)} trend="" />
         <Kpi icon={<Users />} label="Active orders" value={String(activeOrders)} trend="" />
         <Kpi icon={<Star />} label="Avg rating" value={String(avgRating)} trend="" />
       </div>
@@ -126,7 +152,7 @@ function AdminDashboard() {
           </div>
         </div>
         <div className="bg-card border border-border rounded-2xl p-5">
-          <h2 className="font-display font-semibold">Orders by hour today</h2>
+          <h2 className="font-display font-semibold">Orders by hour (Period)</h2>
           <div className="h-64 mt-3">
             <ResponsiveContainer>
               <BarChart data={hourly}>

@@ -6,68 +6,34 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useState } from "react";
-import { cafeInfo } from "@/lib/format";
 import { toast } from "sonner";
+import { useSettings, DEFAULTS, DAYS, type Settings } from "@/lib/store/settings";
 
 export const Route = createFileRoute("/admin/settings")({
   head: () => ({ meta: [{ title: "Settings — Aroma Admin" }] }),
   component: AdminSettings,
 });
 
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
-type DayKey = (typeof DAYS)[number];
-
-type Settings = {
-  name: string;
-  phone: string;
-  email: string;
-  address: string;
-  whatsapp: string;
-  whatsappOnly: boolean;
-  deliveryEnabled: boolean;
-  minOrder: number;
-  freeDeliveryAbove: number;
-  gst: number;
-  hours: Record<DayKey, { open: string; close: string }>;
-};
-
-const DEFAULTS: Settings = {
-  name: cafeInfo.name,
-  phone: cafeInfo.phone,
-  email: cafeInfo.email,
-  address: cafeInfo.address,
-  whatsapp: cafeInfo.whatsapp,
-  whatsappOnly: true,
-  deliveryEnabled: true,
-  minOrder: 150,
-  freeDeliveryAbove: 499,
-  gst: 5,
-  hours: DAYS.reduce(
-    (acc, d) => ({ ...acc, [d]: { open: "08:00", close: "23:00" } }),
-    {} as Settings["hours"],
-  ),
-};
+// Types and defaults are now in src/lib/store/settings.ts
 
 function AdminSettings() {
+  const { settings, fetchSettings, saveSettings, loading } = useSettings();
   const [s, setS] = useState<Settings>(DEFAULTS);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("aroma-settings");
-      if (raw)
-        setS({
-          ...DEFAULTS,
-          ...JSON.parse(raw),
-          hours: { ...DEFAULTS.hours, ...(JSON.parse(raw).hours || {}) },
-        });
-    } catch (e) {
-      console.warn("Failed to load settings from localStorage:", e);
-    }
-  }, []);
+    fetchSettings().then(() => {
+      const current = useSettings.getState().settings;
+      if (current) setS(current);
+    });
+  }, [fetchSettings]);
 
-  const save = () => {
-    localStorage.setItem("aroma-settings", JSON.stringify(s));
-    toast.success("Settings saved");
+  const save = async () => {
+    try {
+      await saveSettings(s);
+      toast.success("Settings saved to Firestore");
+    } catch (e) {
+      toast.error("Failed to save settings");
+    }
   };
 
   const upd = <K extends keyof Settings>(k: K, v: Settings[K]) => setS((p) => ({ ...p, [k]: v }));
@@ -157,8 +123,8 @@ function AdminSettings() {
         </Card>
       </div>
       <div className="mt-6">
-        <Button size="lg" onClick={save} className="w-full sm:w-auto">
-          Save changes
+        <Button size="lg" onClick={save} className="w-full sm:w-auto" disabled={loading}>
+          {loading ? "Loading…" : "Save changes"}
         </Button>
       </div>
     </AdminLayout>

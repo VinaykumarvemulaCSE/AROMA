@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Heart,
   MapPin,
@@ -12,6 +12,8 @@ import {
   Trash2,
   Star,
   Calendar,
+  Save,
+  Loader2,
 } from "lucide-react";
 import { signOutUser } from "@/lib/auth/session";
 import { SiteLayout } from "@/components/layout/SiteLayout";
@@ -29,6 +31,12 @@ import { useTables } from "@/lib/store/tables";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { MenuCard } from "@/components/menu/MenuCard";
 import { toast } from "sonner";
+import {
+  saveUserProfile,
+  loadUserProfile,
+  listenToUserProfile,
+  type UserProfile,
+} from "@/lib/store/profile";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "My profile — Aroma Cafe" }] }),
@@ -50,7 +58,6 @@ function Profile() {
   const user = useAuth((s) => s.user);
   const initialized = useAuth((s) => s.initialized);
   const favs = useAuth((s) => s.favorites);
-  const setUser = useAuth((s) => s.setUser);
   const navigate = useNavigate();
   const menu = useMenu((s) => s.menu);
   const { reservations } = useTables();
@@ -60,7 +67,77 @@ function Profile() {
   const [editingAddr, setEditingAddr] = useState<SavedAddress | null>(null);
   const [addrForm, setAddrForm] = useState<Omit<SavedAddress, "id">>(emptyAddr);
 
+  // Profile form state
+  const [profileName, setProfileName] = useState("");
+  const [profilePhone, setProfilePhone] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Notification preferences
   const [notif, setNotif] = useState({ email: true, sms: true, promo: false });
+
+  // Load profile from Firestore on mount
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const unsub = listenToUserProfile(user.id, (profile) => {
+      setProfileName(profile.name || user.name);
+      setProfilePhone(profile.phone || user.phone || "");
+      setNotif(profile.notifications);
+    });
+
+    // Also load once initially (in case snapshot is slow)
+    loadUserProfile(user.id).then((profile) => {
+      if (profile) {
+        setProfileName(profile.name || user.name);
+        setProfilePhone(profile.phone || user.phone || "");
+        setNotif(profile.notifications);
+      } else {
+        setProfileName(user.name);
+        setProfilePhone(user.phone || "");
+      }
+    });
+
+    return unsub;
+  }, [user?.id, user?.name, user?.phone]);
+
+  const handleSaveProfile = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!user) return;
+      setSaving(true);
+      try {
+        await saveUserProfile(user.id, {
+          name: profileName,
+          phone: profilePhone,
+          email: user.email,
+          notifications: notif,
+        });
+        toast.success("Profile saved to your account!");
+      } catch (err) {
+        toast.error("Failed to save profile. Please try again.");
+        console.error(err);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [user, profileName, profilePhone, notif],
+  );
+
+  const handleNotifChange = useCallback(
+    async (key: "email" | "sms" | "promo", value: boolean) => {
+      const updated = { ...notif, [key]: value };
+      setNotif(updated);
+      if (user) {
+        try {
+          await saveUserProfile(user.id, { notifications: updated });
+          toast.success("Notification preference saved.");
+        } catch {
+          toast.error("Failed to save preference.");
+        }
+      }
+    },
+    [user, notif],
+  );
 
   if (!initialized) {
     return (
@@ -154,7 +231,7 @@ function Profile() {
             </div>
           )}
           <div className="flex-1">
-            <h1 className="text-2xl font-display font-bold">{user.name}</h1>
+            <h1 className="text-2xl font-display font-bold">{profileName || user.name}</h1>
             <p className="text-muted-foreground text-sm">{user.email}</p>
           </div>
           <Button variant="outline" onClick={handleSignOut}>
@@ -186,21 +263,16 @@ function Profile() {
           {/* ── Info tab ── */}
           <TabsContent value="info" className="mt-6">
             <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const fd = new FormData(e.currentTarget);
-                setUser({
-                  ...user,
-                  name: String(fd.get("n") ?? user.name),
-                  phone: String(fd.get("p") ?? ""),
-                });
-                toast.success("Saved");
-              }}
+              onSubmit={handleSaveProfile}
               className="bg-card border border-border rounded-2xl p-6 grid sm:grid-cols-2 gap-4 max-w-2xl"
             >
               <div>
                 <Label>Name</Label>
-                <Input name="n" defaultValue={user.name} className="mt-1.5" />
+                <Input
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  className="mt-1.5"
+                />
               </div>
               <div>
                 <Label>Email</Label>
@@ -214,10 +286,23 @@ function Profile() {
               </div>
               <div className="sm:col-span-2">
                 <Label>Phone</Label>
-                <Input name="p" defaultValue={user.phone} className="mt-1.5" placeholder="+91 …" />
+                <Input
+                  value={profilePhone}
+                  onChange={(e) => setProfilePhone(e.target.value)}
+                  className="mt-1.5"
+                  placeholder="+91 …"
+                />
               </div>
-              <Button type="submit" className="sm:col-span-2 w-fit">
-                Save changes
+              <Button type="submit" className="sm:col-span-2 w-fit" disabled={saving}>
+                {saving ? (
+                  <>
+                    <Loader2 className="size-4 mr-2 animate-spin" /> Saving…
+                  </>
+                ) : (
+                  <>
+                    <Save className="size-4 mr-2" /> Save changes
+                  </>
+                )}
               </Button>
             </form>
           </TabsContent>
@@ -413,20 +498,23 @@ function Profile() {
           {/* ── Notifications tab ── */}
           <TabsContent value="notif" className="mt-6">
             <div className="bg-card border border-border rounded-2xl p-6 space-y-4 max-w-2xl">
+              <p className="text-sm text-muted-foreground mb-2">
+                Your notification preferences are saved to your account.
+              </p>
               <Toggle
                 label="Email updates"
                 v={notif.email}
-                on={(v) => setNotif({ ...notif, email: v })}
+                on={(v) => handleNotifChange("email", v)}
               />
               <Toggle
                 label="SMS updates"
                 v={notif.sms}
-                on={(v) => setNotif({ ...notif, sms: v })}
+                on={(v) => handleNotifChange("sms", v)}
               />
               <Toggle
                 label="Promotional offers"
                 v={notif.promo}
-                on={(v) => setNotif({ ...notif, promo: v })}
+                on={(v) => handleNotifChange("promo", v)}
               />
             </div>
           </TabsContent>
