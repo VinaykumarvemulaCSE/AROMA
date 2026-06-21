@@ -13,7 +13,7 @@ export const Route = createFileRoute("/admin/reservations")({
 });
 
 const statusColor: Record<Reservation["status"], string> = {
-  Pending:   "bg-amber-100 text-amber-700",
+  Pending: "bg-amber-100 text-amber-700",
   Confirmed: "bg-green-100 text-green-700",
   Cancelled: "bg-red-100 text-red-700",
   Completed: "bg-blue-100 text-blue-700",
@@ -56,7 +56,10 @@ function AdminRes() {
           { l: "Pending confirmation", v: pendingCount, icon: Clock },
           { l: "Confirmed", v: confirmedCount, icon: Check },
         ].map((c) => (
-          <div key={c.l} className="bg-card border border-border rounded-2xl p-5 flex items-center gap-3">
+          <div
+            key={c.l}
+            className="bg-card border border-border rounded-2xl p-5 flex items-center gap-3"
+          >
             <div className="size-10 rounded-full bg-primary/10 grid place-items-center shrink-0">
               <c.icon className="size-5 text-primary" />
             </div>
@@ -75,7 +78,9 @@ function AdminRes() {
             key={s}
             onClick={() => setFilter(s)}
             className={`px-3.5 py-1.5 rounded-full text-sm border transition-colors ${
-              filter === s ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-secondary"
+              filter === s
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-card border-border hover:bg-secondary"
             }`}
           >
             {s}
@@ -93,9 +98,13 @@ function AdminRes() {
         <table className="w-full text-sm min-w-[720px]">
           <thead className="bg-secondary/60 text-muted-foreground text-xs uppercase tracking-wider">
             <tr>
-              {["ID", "Guest", "Phone", "Date & Time", "Party", "Occasion", "Status", ""].map((h) => (
-                <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>
-              ))}
+              {["ID", "Guest", "Phone", "Date & Time", "Party", "Occasion", "Status", ""].map(
+                (h) => (
+                  <th key={h} className="text-left px-4 py-3 font-medium">
+                    {h}
+                  </th>
+                ),
+              )}
             </tr>
           </thead>
           <tbody>
@@ -107,17 +116,25 @@ function AdminRes() {
               </tr>
             )}
             {list.map((r) => (
-              <tr key={r.id} className="border-t border-border hover:bg-secondary/20 transition-colors">
+              <tr
+                key={r.id}
+                className="border-t border-border hover:bg-secondary/20 transition-colors"
+              >
                 <td className="px-4 py-3 font-medium text-primary">#{r.id}</td>
                 <td className="px-4 py-3">{r.name}</td>
                 <td className="px-4 py-3 text-muted-foreground">{r.phone}</td>
                 <td className="px-4 py-3 text-xs">
-                  {new Date(r.slotDatetime).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
+                  {new Date(r.slotDatetime).toLocaleString("en-IN", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
                 </td>
                 <td className="px-4 py-3">{r.partySize}</td>
                 <td className="px-4 py-3 text-muted-foreground">{r.occasion || "—"}</td>
                 <td className="px-4 py-3">
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColor[r.status]}`}>
+                  <span
+                    className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColor[r.status]}`}
+                  >
                     {r.status}
                   </span>
                 </td>
@@ -142,7 +159,12 @@ function AdminRes() {
                         </Button>
                       </>
                     )}
-                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setView(r)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => setView(r)}
+                    >
                       View
                     </Button>
                   </div>
@@ -170,7 +192,12 @@ function AdminRes() {
                 </div>
                 <div className="bg-secondary/40 rounded-xl p-3">
                   <p className="text-xs text-muted-foreground mb-1">Booking details</p>
-                  <p className="font-medium">{new Date(view.slotDatetime).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</p>
+                  <p className="font-medium">
+                    {new Date(view.slotDatetime).toLocaleString("en-IN", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </p>
                   <p>{view.partySize} guests</p>
                   {view.occasion && <p className="text-muted-foreground">{view.occasion}</p>}
                 </div>

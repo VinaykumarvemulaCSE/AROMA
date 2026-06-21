@@ -32,8 +32,7 @@ export const categories: { name: Category; icon: string }[] = [
   { name: "Combos", icon: "🍱" },
 ];
 
-const img = (q: string) =>
-  `https://images.unsplash.com/${q}?auto=format&fit=crop&w=800&q=80`;
+const img = (q: string) => `https://images.unsplash.com/${q}?auto=format&fit=crop&w=800&q=80`;
 
 export const menu: MenuItem[] = [
   {

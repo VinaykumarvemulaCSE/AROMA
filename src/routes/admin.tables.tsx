@@ -15,7 +15,16 @@ export const Route = createFileRoute("/admin/tables")({
 });
 
 function AdminTables() {
-  const { tables, reservations, addTableConfig, updateTableConfig, removeTableConfig, addSlot, removeSlot, updateReservationStatus } = useTables();
+  const {
+    tables,
+    reservations,
+    addTableConfig,
+    updateTableConfig,
+    removeTableConfig,
+    addSlot,
+    removeSlot,
+    updateReservationStatus,
+  } = useTables();
 
   const [tableOpen, setTableOpen] = useState(false);
   const [slotOpen, setSlotOpen] = useState(false);
@@ -64,7 +73,10 @@ function AdminTables() {
           { label: "Pending bookings", value: pendingReservations.length, icon: CalendarClock },
           { label: "Confirmed today", value: confirmedReservations.length, icon: Users },
         ].map(({ label, value, icon: Icon }) => (
-          <div key={label} className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4">
+          <div
+            key={label}
+            className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4"
+          >
             <div className="size-10 rounded-full bg-primary/10 grid place-items-center">
               <Icon className="size-5 text-primary" />
             </div>
@@ -93,13 +105,18 @@ function AdminTables() {
                 </div>
                 <div>
                   <p className="font-display font-semibold">{t.size}-seater</p>
-                  <p className="text-xs text-muted-foreground">{t.totalTables} table{t.totalTables !== 1 ? "s" : ""} total</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t.totalTables} table{t.totalTables !== 1 ? "s" : ""} total
+                  </p>
                 </div>
               </div>
               <Button
                 size="icon"
                 variant="ghost"
-                onClick={() => { removeTableConfig(t.id); toast.success("Table config removed."); }}
+                onClick={() => {
+                  removeTableConfig(t.id);
+                  toast.success("Table config removed.");
+                }}
               >
                 <Trash2 className="size-4 text-destructive" />
               </Button>
@@ -118,8 +135,18 @@ function AdminTables() {
                       key={sl.datetime}
                       className="flex items-center gap-1 text-xs bg-secondary rounded-lg px-2 py-1"
                     >
-                      <span>{new Date(sl.datetime).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" })}</span>
-                      <button onClick={() => { removeSlot(t.id, sl.datetime); toast.success("Slot removed."); }}>
+                      <span>
+                        {new Date(sl.datetime).toLocaleString("en-IN", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })}
+                      </span>
+                      <button
+                        onClick={() => {
+                          removeSlot(t.id, sl.datetime);
+                          toast.success("Slot removed.");
+                        }}
+                      >
                         <XCircle className="size-3 text-muted-foreground hover:text-destructive" />
                       </button>
                     </div>
@@ -132,7 +159,10 @@ function AdminTables() {
                 size="sm"
                 variant="outline"
                 className="mt-2 w-full text-xs"
-                onClick={() => { setSelectedTable(t); setSlotOpen(true); }}
+                onClick={() => {
+                  setSelectedTable(t);
+                  setSlotOpen(true);
+                }}
               >
                 <PlusCircle className="size-3 mr-1" /> Add slot
               </Button>
@@ -154,9 +184,13 @@ function AdminTables() {
         <table className="w-full text-sm min-w-[680px]">
           <thead className="bg-secondary/60 text-muted-foreground text-xs uppercase tracking-wider">
             <tr>
-              {["ID", "Name", "Phone", "Date & Time", "Party", "Occasion", "Status", ""].map((h) => (
-                <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>
-              ))}
+              {["ID", "Name", "Phone", "Date & Time", "Party", "Occasion", "Status", ""].map(
+                (h) => (
+                  <th key={h} className="text-left px-4 py-3 font-medium">
+                    {h}
+                  </th>
+                ),
+              )}
             </tr>
           </thead>
           <tbody>
@@ -168,22 +202,33 @@ function AdminTables() {
               </tr>
             )}
             {reservations.map((r) => (
-              <tr key={r.id} className="border-t border-border hover:bg-secondary/20 transition-colors">
+              <tr
+                key={r.id}
+                className="border-t border-border hover:bg-secondary/20 transition-colors"
+              >
                 <td className="px-4 py-3 font-medium text-primary">#{r.id}</td>
                 <td className="px-4 py-3">{r.name}</td>
                 <td className="px-4 py-3 text-muted-foreground">{r.phone}</td>
                 <td className="px-4 py-3 text-xs">
-                  {new Date(r.slotDatetime).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
+                  {new Date(r.slotDatetime).toLocaleString("en-IN", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
                 </td>
                 <td className="px-4 py-3">{r.partySize}</td>
                 <td className="px-4 py-3 text-muted-foreground">{r.occasion || "—"}</td>
                 <td className="px-4 py-3">
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                    r.status === "Confirmed" ? "bg-green-100 text-green-700"
-                    : r.status === "Pending" ? "bg-amber-100 text-amber-700"
-                    : r.status === "Cancelled" ? "bg-red-100 text-red-700"
-                    : "bg-secondary text-muted-foreground"
-                  }`}>
+                  <span
+                    className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                      r.status === "Confirmed"
+                        ? "bg-green-100 text-green-700"
+                        : r.status === "Pending"
+                          ? "bg-amber-100 text-amber-700"
+                          : r.status === "Cancelled"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-secondary text-muted-foreground"
+                    }`}
+                  >
                     {r.status}
                   </span>
                 </td>
@@ -191,10 +236,25 @@ function AdminTables() {
                   <div className="flex gap-1">
                     {r.status === "Pending" && (
                       <>
-                        <Button size="sm" className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white" onClick={() => { updateReservationStatus(r.id, "Confirmed"); toast.success("Reservation confirmed."); }}>
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => {
+                            updateReservationStatus(r.id, "Confirmed");
+                            toast.success("Reservation confirmed.");
+                          }}
+                        >
                           Confirm
                         </Button>
-                        <Button size="sm" variant="outline" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => { updateReservationStatus(r.id, "Cancelled"); toast.success("Reservation cancelled."); }}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs text-destructive hover:text-destructive"
+                          onClick={() => {
+                            updateReservationStatus(r.id, "Cancelled");
+                            toast.success("Reservation cancelled.");
+                          }}
+                        >
                           Cancel
                         </Button>
                       </>
@@ -210,7 +270,9 @@ function AdminTables() {
       {/* Add table dialog */}
       <Dialog open={tableOpen} onOpenChange={setTableOpen}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Add table type</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Add table type</DialogTitle>
+          </DialogHeader>
           <form onSubmit={handleAddTable} className="space-y-4 mt-2">
             <div>
               <Label>Seats per table</Label>
@@ -230,13 +292,17 @@ function AdminTables() {
                 type="number"
                 min={1}
                 value={newTable.totalTables}
-                onChange={(e) => setNewTable({ ...newTable, totalTables: parseInt(e.target.value) || 1 })}
+                onChange={(e) =>
+                  setNewTable({ ...newTable, totalTables: parseInt(e.target.value) || 1 })
+                }
                 className="mt-1.5"
                 required
               />
             </div>
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setTableOpen(false)}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => setTableOpen(false)}>
+                Cancel
+              </Button>
               <Button type="submit">Add</Button>
             </div>
           </form>
@@ -272,7 +338,9 @@ function AdminTables() {
               />
             </div>
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setSlotOpen(false)}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => setSlotOpen(false)}>
+                Cancel
+              </Button>
               <Button type="submit">Add slot</Button>
             </div>
           </form>

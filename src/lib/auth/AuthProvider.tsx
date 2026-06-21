@@ -64,11 +64,11 @@ export function FirestoreSync() {
 
   useEffect(() => {
     if (!initialized) return;
-    
+
     // Public global listeners (only started once)
     const unsubMenu = listenToMenu();
     const unsubTables = listenToTables();
-    const unsubReviews = listenToReviews();
+    const unsubReviews = listenToReviews("public");
 
     return () => {
       unsubMenu();
@@ -92,6 +92,7 @@ export function FirestoreSync() {
     if (user?.role === "admin") {
       unsubs.push(listenToReservations());
       unsubs.push(listenToCoupons());
+      unsubs.push(listenToReviews("admin"));
     }
 
     return () => {
@@ -105,6 +106,7 @@ export function FirestoreSync() {
     listenToAddresses,
     listenToReservations,
     listenToCoupons,
+    listenToReviews,
   ]);
 
   return null;

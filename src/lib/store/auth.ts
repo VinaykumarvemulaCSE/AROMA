@@ -11,6 +11,12 @@ export type User = {
   phone?: string;
   avatar?: string;
   role: "customer" | "admin";
+  reservationPrefs?: {
+    preferredTime?: string;
+    preferredParty?: number;
+    preferredSeat?: string;
+    defaultNote?: string;
+  };
 };
 
 type AuthState = {

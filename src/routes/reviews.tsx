@@ -13,10 +13,12 @@ import { cafeInfo } from "@/lib/format";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/reviews")({
-  head: () => ({ meta: [
-    { title: "Reviews — Aroma Cafe Nalgonda" },
-    { name: "description", content: "Read what our guests say about Aroma Cafe & Restaurant." },
-  ] }),
+  head: () => ({
+    meta: [
+      { title: "Reviews — Aroma Cafe Nalgonda" },
+      { name: "description", content: "Read what our guests say about Aroma Cafe & Restaurant." },
+    ],
+  }),
   component: Reviews,
 });
 
@@ -34,7 +36,10 @@ function Reviews() {
     e.preventDefault();
     if (!name.trim() || !title.trim() || !body.trim()) return;
     await addReview({ name: name.trim(), rating, title: title.trim(), body: body.trim() });
-    setName(""); setTitle(""); setBody(""); setRating(5);
+    setName("");
+    setTitle("");
+    setBody("");
+    setRating(5);
     setOpen(false);
     toast.success("Thanks! Your review was submitted for approval.");
   };
@@ -54,7 +59,12 @@ function Reviews() {
           <div className="bg-card border border-border rounded-2xl p-6 text-center">
             <p className="text-6xl font-display font-bold">{cafeInfo.rating}</p>
             <div className="flex items-center justify-center gap-0.5 mt-2">
-              {Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`size-4 ${i < Math.floor(cafeInfo.rating) ? "fill-gold text-gold" : "text-muted-foreground"}`} />)}
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star
+                  key={i}
+                  className={`size-4 ${i < Math.floor(cafeInfo.rating) ? "fill-gold text-gold" : "text-muted-foreground"}`}
+                />
+              ))}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">{cafeInfo.reviewCount} reviews</p>
           </div>
@@ -62,8 +72,15 @@ function Reviews() {
             {[5, 4, 3, 2, 1].map((s) => (
               <div key={s} className="flex items-center gap-3 py-1">
                 <span className="text-sm w-6">{s}★</span>
-                <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden"><div className="h-full bg-gold" style={{ width: `${ratingBreakdown[s as 5]}%` }} /></div>
-                <span className="text-xs text-muted-foreground w-10 text-right">{ratingBreakdown[s as 5]}%</span>
+                <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
+                  <div
+                    className="h-full bg-gold"
+                    style={{ width: `${ratingBreakdown[s as 5]}%` }}
+                  />
+                </div>
+                <span className="text-xs text-muted-foreground w-10 text-right">
+                  {ratingBreakdown[s as 5]}%
+                </span>
               </div>
             ))}
           </div>
@@ -79,19 +96,38 @@ function Reviews() {
             <article key={r.id} className="bg-card border border-border rounded-2xl p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="size-10 grid place-items-center rounded-full bg-secondary font-display font-semibold">{r.name[0]}</div>
+                  <div className="size-10 grid place-items-center rounded-full bg-secondary font-display font-semibold">
+                    {r.name[0]}
+                  </div>
                   <div>
-                    <p className="font-semibold">{r.name} {r.verified && <span className="text-xs text-sage font-normal">· Verified</span>}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(r.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
+                    <p className="font-semibold">
+                      {r.name}{" "}
+                      {r.verified && (
+                        <span className="text-xs text-sage font-normal">· Verified</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(r.date).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </p>
                   </div>
                 </div>
                 <span className="flex items-center gap-0.5">
-                  {Array.from({ length: r.rating }).map((_, i) => <Star key={i} className="size-3.5 fill-gold text-gold" />)}
+                  {Array.from({ length: r.rating }).map((_, i) => (
+                    <Star key={i} className="size-3.5 fill-gold text-gold" />
+                  ))}
                 </span>
               </div>
               <h3 className="mt-3 font-display font-semibold">{r.title}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{r.body}</p>
-              {r.helpful > 0 && <p className="mt-3 text-xs text-muted-foreground">👍 {r.helpful} found this helpful</p>}
+              {r.helpful > 0 && (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  👍 {r.helpful} found this helpful
+                </p>
+              )}
             </article>
           ))}
         </div>
@@ -99,23 +135,59 @@ function Reviews() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Write a review</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Write a review</DialogTitle>
+          </DialogHeader>
           <form onSubmit={submit} className="space-y-4">
             <div>
               <Label>Your rating</Label>
               <div className="flex gap-1 mt-2">
                 {[1, 2, 3, 4, 5].map((s) => (
                   <button key={s} type="button" onClick={() => setRating(s)}>
-                    <Star className={`size-7 ${s <= rating ? "fill-gold text-gold" : "text-muted-foreground"}`} />
+                    <Star
+                      className={`size-7 ${s <= rating ? "fill-gold text-gold" : "text-muted-foreground"}`}
+                    />
                   </button>
                 ))}
               </div>
             </div>
-            <div><Label>Your name</Label><Input className="mt-1.5" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} required /></div>
-            <div><Label>Title</Label><Input className="mt-1.5" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} required /></div>
-            <div><Label>Your review</Label><Textarea rows={4} maxLength={500} className="mt-1.5" value={body} onChange={(e) => setBody(e.target.value)} required /></div>
-            <p className="text-xs text-muted-foreground">Reviews are checked by our team before appearing publicly.</p>
-            <Button type="submit" className="w-full">Submit</Button>
+            <div>
+              <Label>Your name</Label>
+              <Input
+                className="mt-1.5"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={60}
+                required
+              />
+            </div>
+            <div>
+              <Label>Title</Label>
+              <Input
+                className="mt-1.5"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                maxLength={80}
+                required
+              />
+            </div>
+            <div>
+              <Label>Your review</Label>
+              <Textarea
+                rows={4}
+                maxLength={500}
+                className="mt-1.5"
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                required
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Reviews are checked by our team before appearing publicly.
+            </p>
+            <Button type="submit" className="w-full">
+              Submit
+            </Button>
           </form>
         </DialogContent>
       </Dialog>

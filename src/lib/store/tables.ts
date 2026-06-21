@@ -4,18 +4,28 @@
 
 import { create } from "zustand";
 import { db } from "../firebase";
-import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  getDoc,
+} from "firebase/firestore";
 
 export type TimeSlot = {
-  datetime: string;   // ISO date + time e.g. "2026-06-20T19:30"
+  datetime: string; // ISO date + time e.g. "2026-06-20T19:30"
   available: boolean;
 };
 
 export type TableConfig = {
   id: string;
-  size: number;          // seats per table e.g. 2, 4, 6, 8
-  totalTables: number;   // total physical tables of this size
-  slots: TimeSlot[];     // available booking slots for this size
+  size: number; // seats per table e.g. 2, 4, 6, 8
+  totalTables: number; // total physical tables of this size
+  slots: TimeSlot[]; // available booking slots for this size
 };
 
 export type Reservation = {
@@ -54,6 +64,26 @@ type TableState = {
   listenToReservations: () => () => void;
 };
 
+function mapReservationDoc(data: Record<string, unknown>): Reservation {
+  const customer = data.customer as Record<string, unknown> | undefined;
+  const reservation = data.reservation as Record<string, unknown> | undefined;
+
+  return {
+    id: String(data.id ?? ""),
+    tableConfigId: String(data.tableConfigId ?? ""),
+    slotDatetime: String(data.slotDatetime ?? ""),
+    partySize: Number(reservation?.guests ?? data.partySize ?? 0),
+    name: String(customer?.name ?? data.name ?? ""),
+    email: customer?.email ? String(customer.email) : undefined,
+    phone: String(customer?.phone ?? data.phone ?? ""),
+    occasion: reservation?.occasion ? String(reservation.occasion) : undefined,
+    seat: reservation?.seat ? String(reservation.seat) : undefined,
+    notes: reservation?.notes ? String(reservation.notes) : undefined,
+    status: (data.status as Reservation["status"]) ?? "Pending",
+    createdAt: Number(data.createdAt ?? 0),
+  };
+}
+
 export const useTables = create<TableState>()((set, get) => ({
   tables: [],
   reservations: [],
@@ -76,7 +106,10 @@ export const useTables = create<TableState>()((set, get) => ({
     const snap = await getDoc(docRef);
     if (!snap.exists()) return;
     const t = snap.data() as TableConfig;
-    const slots = [...t.slots.filter((sl) => sl.datetime !== datetime), { datetime, available: true }];
+    const slots = [
+      ...t.slots.filter((sl) => sl.datetime !== datetime),
+      { datetime, available: true },
+    ];
     await updateDoc(docRef, { slots });
   },
 
@@ -98,14 +131,12 @@ export const useTables = create<TableState>()((set, get) => ({
         if (t.size < partySize) return false;
         const slot = t.slots.find((sl) => sl.datetime === datetime && sl.available);
         if (!slot) return false;
-        
+
         const booked = reservations.filter(
           (r) =>
-            r.tableConfigId === t.id &&
-            r.slotDatetime === datetime &&
-            r.status !== "Cancelled"
+            r.tableConfigId === t.id && r.slotDatetime === datetime && r.status !== "Cancelled",
         ).length;
-        
+
         return booked < t.totalTables;
       }) ?? null
     );
@@ -125,7 +156,11 @@ export const useTables = create<TableState>()((set, get) => ({
   listenToReservations: () => {
     const q = query(collection(db, "reservations"), orderBy("createdAt", "desc"));
     return onSnapshot(q, (snapshot) => {
-      set({ reservations: snapshot.docs.map((doc) => doc.data() as Reservation) });
+      set({
+        reservations: snapshot.docs.map((doc) =>
+          mapReservationDoc(doc.data() as Record<string, unknown>),
+        ),
+      });
     });
   },
 }));

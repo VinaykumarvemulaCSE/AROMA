@@ -1,43 +1,77 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { adminDb } from "../firebase-admin";
 import { reservationSchema } from "../validation/schemas";
 import { sendReservationEmailInternal } from "../email";
 import { rateLimit } from "./rate-limit";
 
+export const checkAvailability = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      timeSlot: z.string().regex(/^\d{2}:\d{2}$/),
+      guests: z.number().int().min(1).max(20),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const datetime = `${data.date}T${data.timeSlot}`;
+    const tablesSnap = await adminDb.collection("tables").get();
+
+    for (const tableDoc of tablesSnap.docs) {
+      const tableData = tableDoc.data();
+      if (tableData.size < data.guests) continue;
+
+      const slot = tableData.slots?.find(
+        (sl: { datetime: string; available: boolean }) => sl.datetime === datetime && sl.available,
+      );
+      if (!slot) continue;
+
+      const existingReservations = await adminDb
+        .collection("reservations")
+        .where("tableConfigId", "==", tableDoc.id)
+        .where("slotDatetime", "==", datetime)
+        .where("status", "!=", "Cancelled")
+        .get();
+
+      if (existingReservations.size < tableData.totalTables) {
+        return { available: true as const, tableConfigId: tableDoc.id };
+      }
+    }
+
+    return { available: false as const };
+  });
+
 export const createReservation = createServerFn({ method: "POST" })
   .validator((data: unknown) => reservationSchema.parse(data))
   .handler(async ({ data }) => {
-    // Phase 6: Anti-spam rate limiting (5 req / 10 mins per phone)
-    rateLimit(`res_${data.customer.phone}`, 5, 10 * 60 * 1000);
-    
+    await rateLimit(`res_${data.customer.phone}`, 5, 10 * 60 * 1000);
+
     const datetime = `${data.reservation.date}T${data.reservation.timeSlot}`;
-    
-    // 1. Verify table availability securely on the server
+
     const tableDoc = await adminDb.collection("tables").doc(data.tableConfigId).get();
     if (!tableDoc.exists) {
       throw new Error("Table configuration does not exist.");
     }
     const tableData = tableDoc.data()!;
-    
-    // Check if slot is available in table config
-    const slot = tableData.slots?.find((sl: any) => sl.datetime === datetime && sl.available);
+
+    const slot = tableData.slots?.find(
+      (sl: { datetime: string; available: boolean }) => sl.datetime === datetime && sl.available,
+    );
     if (!slot) {
       throw new Error("This time slot is no longer available.");
     }
 
-    // Check existing reservations for this slot
     const existingReservations = await adminDb
       .collection("reservations")
       .where("tableConfigId", "==", data.tableConfigId)
       .where("slotDatetime", "==", datetime)
       .where("status", "!=", "Cancelled")
       .get();
-      
+
     if (existingReservations.size >= tableData.totalTables) {
       throw new Error("Sorry, all tables are fully booked for this time slot.");
     }
 
-    // 2. Create Reservation ID
     const resId = `RV${Date.now().toString().slice(-6)}`;
 
     const reservationDoc = {
@@ -51,10 +85,8 @@ export const createReservation = createServerFn({ method: "POST" })
       createdAt: Date.now(),
     };
 
-    // 3. Save to Firestore bypassing public rules
     await adminDb.collection("reservations").doc(resId).set(reservationDoc);
 
-    // 4. Send Emails asynchronously
     await sendReservationEmailInternal({
       reservationId: resId,
       customerName: data.customer.name,

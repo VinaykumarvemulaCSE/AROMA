@@ -47,7 +47,7 @@ service cloud.firestore {
     }
 
     match /reviews/{reviewId} {
-      allow read: if true;
+      allow read: if resource.data.status == "approved" || isAdmin();
       allow write: if isAdmin();
     }
 

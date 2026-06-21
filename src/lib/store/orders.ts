@@ -3,7 +3,16 @@
 
 import { create } from "zustand";
 import { db } from "../firebase";
-import { collection, doc, setDoc, updateDoc, onSnapshot, query, orderBy, where } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  setDoc,
+  updateDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  where,
+} from "firebase/firestore";
 
 export type OrderStatus =
   | "Pending"
@@ -48,7 +57,7 @@ export type Order = {
   subtotal: number;
   tax: number;
   delivery: number;
-  discount: number;   // coupon discount applied
+  discount: number; // coupon discount applied
   couponCode?: string;
   total: number;
   addr: Address;
@@ -75,10 +84,14 @@ export const useOrders = create<OrdersState>()((set) => ({
   },
   listenToOrders: (userId, role) => {
     let q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-    
+
     // If customer, only listen to their own orders
     if (role === "customer" && userId) {
-      q = query(collection(db, "orders"), where("userId", "==", userId), orderBy("createdAt", "desc"));
+      q = query(
+        collection(db, "orders"),
+        where("userId", "==", userId),
+        orderBy("createdAt", "desc"),
+      );
     } else if (role !== "admin") {
       // If not logged in and not admin, we shouldn't listen to anything globally
       // (Unless we want guest tracking, which we handle separately by direct doc fetch)
@@ -86,12 +99,16 @@ export const useOrders = create<OrdersState>()((set) => ({
       return () => {};
     }
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedOrders = snapshot.docs.map((doc) => doc.data() as Order);
-      set({ orders: fetchedOrders });
-    }, (error) => {
-      console.error("Error listening to orders:", error);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const fetchedOrders = snapshot.docs.map((doc) => doc.data() as Order);
+        set({ orders: fetchedOrders });
+      },
+      (error) => {
+        console.error("Error listening to orders:", error);
+      },
+    );
 
     return unsubscribe;
   },

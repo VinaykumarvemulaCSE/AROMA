@@ -1,5 +1,5 @@
 // src/lib/store/reviews.ts
-// Reviews are stored in Firestore. Customers submit (status: "pending").
+// Reviews are stored in Firestore. Customers submit via server function (status: "pending").
 // Admins approve/reject. Only "approved" reviews show on the public /reviews page.
 
 import { create } from "zustand";
@@ -7,13 +7,14 @@ import { db } from "../firebase";
 import {
   collection,
   doc,
-  addDoc,
   updateDoc,
   deleteDoc,
   onSnapshot,
   query,
   orderBy,
+  where,
 } from "firebase/firestore";
+import { submitReview as submitReviewApi } from "../api/reviews";
 
 export type ReviewStatus = "pending" | "approved" | "rejected";
 
@@ -32,23 +33,19 @@ export type StoredReview = {
 
 type ReviewsState = {
   reviews: StoredReview[];
-  addReview: (r: Omit<StoredReview, "id" | "date" | "helpful" | "verified" | "status">) => Promise<void>;
+  addReview: (
+    r: Omit<StoredReview, "id" | "date" | "helpful" | "verified" | "status">,
+  ) => Promise<void>;
   setStatus: (id: string, status: ReviewStatus) => Promise<void>;
   remove: (id: string) => Promise<void>;
-  listenToReviews: () => () => void;
+  listenToReviews: (role?: "admin" | "public") => () => void;
 };
 
 export const useReviews = create<ReviewsState>()((set) => ({
   reviews: [],
 
   addReview: async (r) => {
-    await addDoc(collection(db, "reviews"), {
-      ...r,
-      date: new Date().toISOString().slice(0, 10),
-      helpful: 0,
-      verified: false,
-      status: "pending",
-    });
+    await submitReviewApi({ data: r });
   },
 
   setStatus: async (id, status) => {
@@ -59,13 +56,21 @@ export const useReviews = create<ReviewsState>()((set) => ({
     await deleteDoc(doc(db, "reviews", id));
   },
 
-  listenToReviews: () => {
-    const q = query(collection(db, "reviews"), orderBy("date", "desc"));
+  listenToReviews: (role = "public") => {
+    const q =
+      role === "admin"
+        ? query(collection(db, "reviews"), orderBy("date", "desc"))
+        : query(
+            collection(db, "reviews"),
+            where("status", "==", "approved"),
+            orderBy("date", "desc"),
+          );
+
     return onSnapshot(
       q,
       (snapshot) => {
         set({
-          reviews: snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as StoredReview)),
+          reviews: snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as StoredReview),
         });
       },
       (error) => {

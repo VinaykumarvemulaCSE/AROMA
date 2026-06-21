@@ -75,9 +75,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Aroma Cafe & Restaurant — Nalgonda" },
-      { name: "description", content: "Specialty coffee, fresh-baked goods and fine dining in the heart of Nalgonda. Order online or reserve a table." },
+      {
+        name: "description",
+        content:
+          "Specialty coffee, fresh-baked goods and fine dining in the heart of Nalgonda. Order online or reserve a table.",
+      },
       { property: "og:title", content: "Aroma Cafe & Restaurant — Nalgonda" },
-      { property: "og:description", content: "Specialty coffee, fresh-baked goods and fine dining in Nalgonda." },
+      {
+        property: "og:description",
+        content: "Specialty coffee, fresh-baked goods and fine dining in Nalgonda.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -86,7 +93,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap",
+      },
     ],
   }),
   shellComponent: RootShell,

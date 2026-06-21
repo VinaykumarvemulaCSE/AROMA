@@ -20,7 +20,7 @@ function loadEnv() {
 const env = loadEnv();
 const API_KEY = env.VITE_FIREBASE_API_KEY;
 const ADMIN_EMAIL = env.VITE_ADMIN_EMAIL ?? "kumarvinay072007@gmail.com";
-const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD ?? "Vinay@123";
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD;
 
 const routes = [
   "/",
@@ -60,6 +60,9 @@ async function testPages() {
 }
 
 async function testAdminAuth() {
+  if (!ADMIN_PASSWORD) {
+    return { ok: false, skipped: true, error: "Set TEST_ADMIN_PASSWORD to run admin auth tests." };
+  }
   const res = await fetch(
     `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${API_KEY}`,
     {
@@ -129,7 +132,11 @@ async function main() {
   console.log("\n── Admin Firebase Auth ──");
   const auth = await testAdminAuth();
   if (!auth.ok) {
-    console.log(`❌ Sign-in failed: ${auth.error}`);
+    if (auth.skipped) {
+      console.log(`⏭️  ${auth.error}`);
+    } else {
+      console.log(`❌ Sign-in failed: ${auth.error}`);
+    }
   } else {
     console.log(`✅ Signed in as ${auth.email} (${auth.uid})`);
     console.log(`${auth.adminClaim ? "✅" : "❌"} admin custom claim on token`);
@@ -156,22 +163,27 @@ async function main() {
 
   console.log("\n── Firestore rules ──");
   const publicRead = await testFirestorePublicRead(null);
-  console.log(`${publicRead.ok ? "✅" : "❌"} Public menu_items read (no auth) → ${publicRead.status}`);
+  console.log(
+    `${publicRead.ok ? "✅" : "❌"} Public menu_items read (no auth) → ${publicRead.status}`,
+  );
 
   if (token) {
     const adminOrders = await testFirestoreAdminOrdersList(token);
-    console.log(
-      `${adminOrders.ok ? "✅" : "❌"} Admin orders list query → ${adminOrders.status}`,
-    );
+    console.log(`${adminOrders.ok ? "✅" : "❌"} Admin orders list query → ${adminOrders.status}`);
   }
 
   console.log("\n── Config ──");
   console.log(`✅ VITE_ADMIN_EMAIL=${ADMIN_EMAIL}`);
 
   const totalFails =
-    pageFails + (auth.ok ? 0 : 1) + (auth.adminClaim ? 0 : auth.ok ? 1 : 0) + (publicRead.ok ? 0 : 1);
+    pageFails +
+    (auth.ok ? 0 : 1) +
+    (auth.adminClaim ? 0 : auth.ok ? 1 : 0) +
+    (publicRead.ok ? 0 : 1);
 
-  console.log(`\n${totalFails === 0 ? "✅ All checks passed" : `❌ ${totalFails} check(s) failed`}\n`);
+  console.log(
+    `\n${totalFails === 0 ? "✅ All checks passed" : `❌ ${totalFails} check(s) failed`}\n`,
+  );
   process.exit(totalFails === 0 ? 0 : 1);
 }
 

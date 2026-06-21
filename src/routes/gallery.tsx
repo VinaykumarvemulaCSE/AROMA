@@ -4,10 +4,12 @@ import { X } from "lucide-react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 
 export const Route = createFileRoute("/gallery")({
-  head: () => ({ meta: [
-    { title: "Gallery — Aroma Cafe Nalgonda" },
-    { name: "description", content: "Step inside Aroma Cafe — our space, our food, our team." },
-  ] }),
+  head: () => ({
+    meta: [
+      { title: "Gallery — Aroma Cafe Nalgonda" },
+      { name: "description", content: "Step inside Aroma Cafe — our space, our food, our team." },
+    ],
+  }),
   component: Gallery,
 });
 
@@ -40,22 +42,45 @@ function Gallery() {
         <p className="mt-2 text-muted-foreground">A glimpse inside Aroma Cafe.</p>
         <div className="mt-6 flex gap-2 flex-wrap">
           {cats.map((c) => (
-            <button key={c} onClick={() => setCat(c)} className={`px-4 py-1.5 rounded-full text-sm border ${cat === c ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"}`}>{c}</button>
+            <button
+              key={c}
+              onClick={() => setCat(c)}
+              className={`px-4 py-1.5 rounded-full text-sm border ${cat === c ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"}`}
+            >
+              {c}
+            </button>
           ))}
         </div>
         <div className="mt-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {list.map((p, i) => (
-            <button key={i} onClick={() => setOpen(i)} className="aspect-square rounded-2xl overflow-hidden group">
-              <img src={`https://images.unsplash.com/${p.src}?auto=format&fit=crop&w=600&q=80`} alt={p.cat} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+            <button
+              key={i}
+              onClick={() => setOpen(i)}
+              className="aspect-square rounded-2xl overflow-hidden group"
+            >
+              <img
+                src={`https://images.unsplash.com/${p.src}?auto=format&fit=crop&w=600&q=80`}
+                alt={p.cat}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
             </button>
           ))}
         </div>
       </section>
 
       {open !== null && (
-        <div className="fixed inset-0 z-50 bg-black/90 grid place-items-center p-4" onClick={() => setOpen(null)}>
-          <button className="absolute top-4 right-4 text-white"><X /></button>
-          <img src={`https://images.unsplash.com/${list[open].src}?auto=format&fit=crop&w=1600&q=85`} alt="" className="max-h-full max-w-full rounded-xl" />
+        <div
+          className="fixed inset-0 z-50 bg-black/90 grid place-items-center p-4"
+          onClick={() => setOpen(null)}
+        >
+          <button className="absolute top-4 right-4 text-white">
+            <X />
+          </button>
+          <img
+            src={`https://images.unsplash.com/${list[open].src}?auto=format&fit=crop&w=1600&q=85`}
+            alt=""
+            className="max-h-full max-w-full rounded-xl"
+          />
         </div>
       )}
     </SiteLayout>

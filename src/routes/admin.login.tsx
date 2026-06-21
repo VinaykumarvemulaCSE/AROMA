@@ -16,11 +16,15 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/login")({
   head: () => ({ meta: [{ title: "Admin sign in — Aroma" }] }),
+  validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
+    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+  }),
   component: AdminLogin,
 });
 
 function AdminLogin() {
   const navigate = useNavigate();
+  const { redirect: redirectTo } = Route.useSearch();
   const user = useAuth((s) => s.user);
   const initialized = useAuth((s) => s.initialized);
   const [email, setEmail] = useState("");
@@ -29,9 +33,21 @@ function AdminLogin() {
 
   useEffect(() => {
     if (initialized && user?.role === "admin") {
-      navigate({ to: "/admin" });
+      if (redirectTo && redirectTo.startsWith("/admin") && !redirectTo.startsWith("//")) {
+        navigate({ to: redirectTo });
+      } else {
+        navigate({ to: "/admin" });
+      }
     }
-  }, [initialized, user, navigate]);
+  }, [initialized, user, navigate, redirectTo]);
+
+  const goAfterLogin = () => {
+    if (redirectTo && redirectTo.startsWith("/admin") && !redirectTo.startsWith("//")) {
+      navigate({ to: redirectTo });
+      return;
+    }
+    navigate({ to: "/admin" });
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +66,7 @@ function AdminLogin() {
       }
 
       toast.success("Welcome, admin!");
-      navigate({ to: "/admin" });
+      goAfterLogin();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Sign in failed.";
       toast.error(message);

@@ -52,7 +52,10 @@ function Promotions() {
           </p>
         </div>
         <Button
-          onClick={() => { setF(empty); setOpen(true); }}
+          onClick={() => {
+            setF(empty);
+            setOpen(true);
+          }}
         >
           <Plus className="size-4 mr-2" /> Create coupon
         </Button>
@@ -63,7 +66,9 @@ function Promotions() {
           <thead className="bg-secondary/60 text-muted-foreground text-xs uppercase tracking-wider">
             <tr>
               {["Code", "Discount", "Min Order", "Max Uses", "Used", "Status", ""].map((h) => (
-                <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>
+                <th key={h} className="text-left px-4 py-3 font-medium">
+                  {h}
+                </th>
               ))}
             </tr>
           </thead>
@@ -77,7 +82,10 @@ function Promotions() {
               </tr>
             )}
             {coupons.map((c) => (
-              <tr key={c.code} className="border-t border-border hover:bg-secondary/30 transition-colors">
+              <tr
+                key={c.code}
+                className="border-t border-border hover:bg-secondary/30 transition-colors"
+              >
                 <td className="px-4 py-3">
                   <span className="font-mono font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">
                     {c.code}
@@ -133,7 +141,9 @@ function Promotions() {
           </DialogHeader>
           <form onSubmit={handleCreate} className="space-y-4 mt-2">
             <div>
-              <Label>Coupon code <span className="text-destructive">*</span></Label>
+              <Label>
+                Coupon code <span className="text-destructive">*</span>
+              </Label>
               <Input
                 value={f.code}
                 onChange={(e) => setF({ ...f, code: e.target.value.toUpperCase() })}
@@ -143,7 +153,9 @@ function Promotions() {
               />
             </div>
             <div>
-              <Label>Discount amount (₹) <span className="text-destructive">*</span></Label>
+              <Label>
+                Discount amount (₹) <span className="text-destructive">*</span>
+              </Label>
               <Input
                 type="number"
                 min={1}
@@ -153,7 +165,9 @@ function Promotions() {
                 className="mt-1.5"
                 required
               />
-              <p className="text-xs text-muted-foreground mt-1">Fixed amount deducted from subtotal.</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Fixed amount deducted from subtotal.
+              </p>
             </div>
             <div>
               <Label>Minimum order amount (₹)</Label>
@@ -187,7 +201,9 @@ function Promotions() {
               />
             </div>
             <div className="flex justify-end gap-2 pt-1">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
               <Button type="submit">Create coupon</Button>
             </div>
           </form>

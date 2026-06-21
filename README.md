@@ -7,6 +7,7 @@ A modern Indian restaurant website with online ordering, table reservations, cus
 ## Features
 
 ### For customers
+
 - Browse the menu with search, category & dietary filters
 - Add to cart, checkout in 3 steps, and confirm via WhatsApp (full order details sent automatically)
 - Track order status and download a printable bill
@@ -14,6 +15,7 @@ A modern Indian restaurant website with online ordering, table reservations, cus
 - Customer account with order history
 
 ### For the restaurant (admin panel)
+
 - Dashboard with KPIs and recent activity
 - Manage orders, menu, customers, reservations, promotions, staff
 - Moderate customer reviews (approve / reject)

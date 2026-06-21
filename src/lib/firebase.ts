@@ -26,8 +26,7 @@ if (missingKeys.length > 0 && import.meta.env.DEV) {
   );
 }
 
-const app: FirebaseApp =
-  getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]!;
+const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]!;
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);

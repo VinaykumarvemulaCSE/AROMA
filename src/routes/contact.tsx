@@ -11,10 +11,15 @@ import { sendContactEmail } from "@/lib/email";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/contact")({
-  head: () => ({ meta: [
-    { title: "Contact — Aroma Cafe Nalgonda" },
-    { name: "description", content: "Get in touch with Aroma Cafe — phone, email, WhatsApp, or visit us in Nalgonda." },
-  ] }),
+  head: () => ({
+    meta: [
+      { title: "Contact — Aroma Cafe Nalgonda" },
+      {
+        name: "description",
+        content: "Get in touch with Aroma Cafe — phone, email, WhatsApp, or visit us in Nalgonda.",
+      },
+    ],
+  }),
   component: Contact,
 });
 
@@ -29,10 +34,14 @@ function Contact() {
     if (!name.trim() || !email.trim() || !message.trim()) return;
     setLoading(true);
     try {
-      const result = await sendContactEmail({ data: { name: name.trim(), email: email.trim(), message: message.trim() } });
+      const result = await sendContactEmail({
+        data: { name: name.trim(), email: email.trim(), message: message.trim() },
+      });
       if (result?.success) {
         toast.success("Message sent! We'll be in touch soon.");
-        setName(""); setEmail(""); setMessage("");
+        setName("");
+        setEmail("");
+        setMessage("");
       } else {
         toast.error("Failed to send message. Please try WhatsApp or call us directly.");
       }
@@ -51,12 +60,36 @@ function Contact() {
 
         <div className="mt-8 grid md:grid-cols-2 gap-8">
           <div className="space-y-4">
-            <Card icon={<Phone className="size-5" />} label="Call us" value={cafeInfo.phone} href={`tel:${cafeInfo.phone}`} />
-            <Card icon={<MessageCircle className="size-5" />} label="WhatsApp" value="Chat with us" href={`https://wa.me/${cafeInfo.whatsapp}`} />
-            <Card icon={<Mail className="size-5" />} label="Email" value={cafeInfo.email} href={`mailto:${cafeInfo.email}`} />
-            <Card icon={<MapPin className="size-5" />} label="Visit" value={cafeInfo.address} href={cafeInfo.mapsUrl} />
+            <Card
+              icon={<Phone className="size-5" />}
+              label="Call us"
+              value={cafeInfo.phone}
+              href={`tel:${cafeInfo.phone}`}
+            />
+            <Card
+              icon={<MessageCircle className="size-5" />}
+              label="WhatsApp"
+              value="Chat with us"
+              href={`https://wa.me/${cafeInfo.whatsapp}`}
+            />
+            <Card
+              icon={<Mail className="size-5" />}
+              label="Email"
+              value={cafeInfo.email}
+              href={`mailto:${cafeInfo.email}`}
+            />
+            <Card
+              icon={<MapPin className="size-5" />}
+              label="Visit"
+              value={cafeInfo.address}
+              href={cafeInfo.mapsUrl}
+            />
             <div className="aspect-[4/3] rounded-2xl overflow-hidden border border-border">
-              <iframe title="Map" className="w-full h-full" src="https://maps.google.com/maps?q=Nalgonda&t=&z=13&ie=UTF8&iwloc=&output=embed" />
+              <iframe
+                title="Map"
+                className="w-full h-full"
+                src="https://maps.google.com/maps?q=Nalgonda&t=&z=13&ie=UTF8&iwloc=&output=embed"
+              />
             </div>
           </div>
 
@@ -67,18 +100,44 @@ function Contact() {
             <h2 className="font-display font-semibold text-lg">Send a message</h2>
             <div>
               <Label>Name</Label>
-              <Input id="contact-name" className="mt-1.5" value={name} onChange={(e) => setName(e.target.value)} required />
+              <Input
+                id="contact-name"
+                className="mt-1.5"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
             </div>
             <div>
               <Label>Email</Label>
-              <Input id="contact-email" type="email" className="mt-1.5" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Input
+                id="contact-email"
+                type="email"
+                className="mt-1.5"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
             <div>
               <Label>Message</Label>
-              <Textarea id="contact-message" rows={5} className="mt-1.5" value={message} onChange={(e) => setMessage(e.target.value)} required />
+              <Textarea
+                id="contact-message"
+                rows={5}
+                className="mt-1.5"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                required
+              />
             </div>
             <Button type="submit" className="w-full" size="lg" disabled={loading}>
-              {loading ? <><Loader2 className="size-4 mr-2 animate-spin" /> Sending…</> : "Send message"}
+              {loading ? (
+                <>
+                  <Loader2 className="size-4 mr-2 animate-spin" /> Sending…
+                </>
+              ) : (
+                "Send message"
+              )}
             </Button>
           </form>
         </div>
@@ -87,11 +146,29 @@ function Contact() {
   );
 }
 
-function Card({ icon, label, value, href }: { icon: React.ReactNode; label: string; value: string; href: string }) {
+function Card({
+  icon,
+  label,
+  value,
+  href,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  href: string;
+}) {
   return (
-    <a href={href} className="flex items-center gap-4 bg-card border border-border rounded-2xl p-5 hover:border-primary transition-colors">
-      <div className="grid place-items-center size-11 rounded-xl bg-secondary text-primary">{icon}</div>
-      <div><p className="text-xs uppercase text-muted-foreground tracking-wider">{label}</p><p className="font-semibold">{value}</p></div>
+    <a
+      href={href}
+      className="flex items-center gap-4 bg-card border border-border rounded-2xl p-5 hover:border-primary transition-colors"
+    >
+      <div className="grid place-items-center size-11 rounded-xl bg-secondary text-primary">
+        {icon}
+      </div>
+      <div>
+        <p className="text-xs uppercase text-muted-foreground tracking-wider">{label}</p>
+        <p className="font-semibold">{value}</p>
+      </div>
     </a>
   );
 }

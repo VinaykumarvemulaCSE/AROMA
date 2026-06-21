@@ -39,12 +39,21 @@ function loadMapsScript(): Promise<void> {
     s.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&libraries=places`;
     s.async = true;
     s.defer = true;
-    s.onload = () => { scriptLoaded = true; resolve(); };
+    s.onload = () => {
+      scriptLoaded = true;
+      resolve();
+    };
     document.head.appendChild(s);
   });
 }
 
-export function AddressAutocomplete({ value, onChange, placeholder = "Start typing your address…", className, required }: Props) {
+export function AddressAutocomplete({
+  value,
+  onChange,
+  placeholder = "Start typing your address…",
+  className,
+  required,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [ready, setReady] = useState(false);
 
@@ -55,7 +64,7 @@ export function AddressAutocomplete({ value, onChange, placeholder = "Start typi
 
   useEffect(() => {
     if (!ready || !inputRef.current) return;
-    // @ts-ignore — google is loaded via script tag
+    // @ts-expect-error — google is loaded via script tag
     const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
       componentRestrictions: { country: "in" },
       fields: ["address_components", "formatted_address", "geometry", "place_id"],
@@ -67,8 +76,9 @@ export function AddressAutocomplete({ value, onChange, placeholder = "Start typi
       if (!place.address_components) return;
 
       const get = (type: string) =>
-        place.address_components!.find((c: any) => c.types.includes(type))
-          ?.long_name ?? "";
+        place.address_components!.find((c: { types: string[]; long_name: string }) =>
+          c.types.includes(type),
+        )?.long_name ?? "";
 
       const streetNumber = get("street_number");
       const route = get("route");
@@ -78,19 +88,25 @@ export function AddressAutocomplete({ value, onChange, placeholder = "Start typi
       const pin = get("postal_code");
 
       const line1 = [streetNumber, route, sublocality].filter(Boolean).join(", ");
-      
-      const location = place.geometry?.location ? {
-        address: place.formatted_address ?? line1,
-        latitude: place.geometry.location.lat(),
-        longitude: place.geometry.location.lng(),
-        placeId: place.place_id ?? "",
-      } : undefined;
 
-      onChange(place.formatted_address ?? line1, { line1: line1 || (place.formatted_address ?? ""), city, pin }, location);
+      const location = place.geometry?.location
+        ? {
+            address: place.formatted_address ?? line1,
+            latitude: place.geometry.location.lat(),
+            longitude: place.geometry.location.lng(),
+            placeId: place.place_id ?? "",
+          }
+        : undefined;
+
+      onChange(
+        place.formatted_address ?? line1,
+        { line1: line1 || (place.formatted_address ?? ""), city, pin },
+        location,
+      );
     });
 
     return () => {
-      // @ts-ignore
+      // @ts-expect-error — google is loaded via script tag
       google.maps.event.removeListener(listener);
     };
   }, [ready, onChange]);

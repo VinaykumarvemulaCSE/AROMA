@@ -1,34 +1,28 @@
-// In-memory rate limiter for server functions.
-// Note: In a serverless/edge environment with many instances, 
-// this limits per-instance. For strict global limits, use Redis or Firestore.
-
-type RateLimitRecord = {
-  count: number;
-  resetTime: number;
-};
-
-const store = new Map<string, RateLimitRecord>();
+import { adminDb } from "../firebase-admin";
 
 /**
- * Enforce a rate limit for a given key (e.g., IP address or User ID + Endpoint)
- * @param key Unique identifier for the client and endpoint
- * @param maxRequests Maximum allowed requests in the window
- * @param windowMs Time window in milliseconds
- * @throws Error if rate limit is exceeded
+ * Firestore-backed rate limiter for server functions.
+ * Works across serverless instances in the same Firebase project.
  */
-export function rateLimit(key: string, maxRequests: number, windowMs: number) {
+export async function rateLimit(key: string, maxRequests: number, windowMs: number) {
+  const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 120);
+  const docRef = adminDb.collection("_ratelimit").doc(safeKey);
   const now = Date.now();
-  let record = store.get(key);
 
-  if (!record || now > record.resetTime) {
-    record = { count: 1, resetTime: now + windowMs };
-    store.set(key, record);
-    return;
-  }
+  await adminDb.runTransaction(async (transaction) => {
+    const snap = await transaction.get(docRef);
 
-  record.count++;
-  if (record.count > maxRequests) {
-    const minutesLeft = Math.ceil((record.resetTime - now) / 60000);
-    throw new Error(`Too many requests. Please try again in ${minutesLeft} minute(s).`);
-  }
+    if (!snap.exists || now > snap.data()!.resetTime) {
+      transaction.set(docRef, { count: 1, resetTime: now + windowMs });
+      return;
+    }
+
+    const data = snap.data()!;
+    if (data.count >= maxRequests) {
+      const minutesLeft = Math.ceil((data.resetTime - now) / 60000);
+      throw new Error(`Too many requests. Please try again in ${minutesLeft} minute(s).`);
+    }
+
+    transaction.update(docRef, { count: data.count + 1 });
+  });
 }

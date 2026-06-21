@@ -3,12 +3,22 @@
 
 import { create } from "zustand";
 import { db } from "../firebase";
-import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, query, getDocs, writeBatch } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  query,
+  getDocs,
+  writeBatch,
+} from "firebase/firestore";
 import { useAuth } from "./auth";
 
 export type SavedAddress = {
   id: string;
-  label: string;       // e.g. "Home", "Work", "Mom's place"
+  label: string; // e.g. "Home", "Work", "Mom's place"
   line1: string;
   line2?: string;
   landmark?: string;
@@ -36,14 +46,14 @@ export const useAddresses = create<AddressState>()((set, get) => ({
 
     const id = `addr-${Date.now()}`;
     const { addresses } = get();
-    
+
     const isDefault = addresses.length === 0 ? true : a.isDefault;
     const addrCol = collection(db, "users", userId, "addresses");
 
     if (isDefault && addresses.length > 0) {
       // Unset previous defaults in a batch
       const batch = writeBatch(db);
-      addresses.forEach(addr => {
+      addresses.forEach((addr) => {
         if (addr.isDefault) {
           batch.update(doc(addrCol, addr.id), { isDefault: false });
         }
@@ -68,8 +78,8 @@ export const useAddresses = create<AddressState>()((set, get) => ({
     await deleteDoc(doc(db, "users", userId, "addresses", id));
 
     // If removed default, promote the first remaining
-    const remaining = addresses.filter(a => a.id !== id);
-    if (remaining.length > 0 && !remaining.some(a => a.isDefault)) {
+    const remaining = addresses.filter((a) => a.id !== id);
+    if (remaining.length > 0 && !remaining.some((a) => a.isDefault)) {
       await updateDoc(doc(db, "users", userId, "addresses", remaining[0].id), { isDefault: true });
     }
   },
@@ -78,9 +88,9 @@ export const useAddresses = create<AddressState>()((set, get) => ({
     const userId = useAuth.getState().user?.id;
     if (!userId) return;
     const { addresses } = get();
-    
+
     const batch = writeBatch(db);
-    addresses.forEach(addr => {
+    addresses.forEach((addr) => {
       const ref = doc(db, "users", userId, "addresses", addr.id);
       if (addr.id === id) {
         batch.update(ref, { isDefault: true });

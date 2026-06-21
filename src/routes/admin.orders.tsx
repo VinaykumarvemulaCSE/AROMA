@@ -15,17 +15,23 @@ export const Route = createFileRoute("/admin/orders")({
 });
 
 const statuses: OrderStatus[] = [
-  "Pending", "Confirmed", "Preparing", "Ready", "Out for Delivery", "Delivered", "Cancelled",
+  "Pending",
+  "Confirmed",
+  "Preparing",
+  "Ready",
+  "Out for Delivery",
+  "Delivered",
+  "Cancelled",
 ];
 
 const statusColor: Record<OrderStatus, string> = {
-  Pending:          "bg-amber-100 text-amber-700",
-  Confirmed:        "bg-blue-100 text-blue-700",
-  Preparing:        "bg-purple-100 text-purple-700",
-  Ready:            "bg-indigo-100 text-indigo-700",
+  Pending: "bg-amber-100 text-amber-700",
+  Confirmed: "bg-blue-100 text-blue-700",
+  Preparing: "bg-purple-100 text-purple-700",
+  Ready: "bg-indigo-100 text-indigo-700",
   "Out for Delivery": "bg-cyan-100 text-cyan-700",
-  Delivered:        "bg-green-100 text-green-700",
-  Cancelled:        "bg-red-100 text-red-700",
+  Delivered: "bg-green-100 text-green-700",
+  Cancelled: "bg-red-100 text-red-700",
 };
 
 function AdminOrders() {
@@ -38,10 +44,7 @@ function AdminOrders() {
 
   const list = orders.filter((o) => {
     const matchFilter = filter === "All" || o.status === filter;
-    const matchQ =
-      !q ||
-      o.contact.name.toLowerCase().includes(q.toLowerCase()) ||
-      o.id.includes(q);
+    const matchQ = !q || o.contact.name.toLowerCase().includes(q.toLowerCase()) || o.id.includes(q);
     return matchFilter && matchQ;
   });
 
@@ -93,7 +96,7 @@ function AdminOrders() {
           o.total,
           o.status,
           new Date(o.createdAt).toLocaleDateString("en-IN"),
-        ].join(",")
+        ].join(","),
       )
       .join("\n");
     const url = URL.createObjectURL(new Blob([head + body], { type: "text/csv" }));
@@ -122,11 +125,13 @@ function AdminOrders() {
         </div>
         <select
           value={filter}
-          onChange={(e) => setFilter(e.target.value as any)}
+          onChange={(e) => setFilter(e.target.value as "All" | OrderStatus)}
           className="h-9 rounded-md border border-border bg-card px-3 text-sm"
         >
           <option value="All">All statuses</option>
-          {statuses.map((s) => <option key={s}>{s}</option>)}
+          {statuses.map((s) => (
+            <option key={s}>{s}</option>
+          ))}
         </select>
         <Button variant="outline" className="ml-auto" onClick={exportCsv}>
           Export CSV
@@ -139,7 +144,9 @@ function AdminOrders() {
           <thead className="bg-secondary/60 text-muted-foreground text-xs uppercase tracking-wider">
             <tr>
               {["Order", "Customer", "Time", "Items", "Total", "Status", "Actions"].map((h) => (
-                <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>
+                <th key={h} className="text-left px-4 py-3 font-medium">
+                  {h}
+                </th>
               ))}
             </tr>
           </thead>
@@ -152,20 +159,28 @@ function AdminOrders() {
               </tr>
             )}
             {list.map((o) => (
-              <tr key={o.id} className="border-t border-border hover:bg-secondary/20 transition-colors">
+              <tr
+                key={o.id}
+                className="border-t border-border hover:bg-secondary/20 transition-colors"
+              >
                 <td className="px-4 py-3 font-medium text-primary">#{o.id}</td>
                 <td className="px-4 py-3">
                   {o.contact.name}
                   <div className="text-xs text-muted-foreground">{o.contact.phone}</div>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground text-xs">
-                  {new Date(o.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                  {new Date(o.createdAt).toLocaleTimeString("en-IN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                   <div>{new Date(o.createdAt).toLocaleDateString("en-IN")}</div>
                 </td>
                 <td className="px-4 py-3">{o.items.length}</td>
                 <td className="px-4 py-3 font-semibold">{inr(o.total)}</td>
                 <td className="px-4 py-3">
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColor[o.status as OrderStatus] ?? "bg-secondary"}`}>
+                  <span
+                    className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColor[o.status as OrderStatus] ?? "bg-secondary"}`}
+                  >
                     {o.status}
                   </span>
                 </td>
@@ -180,7 +195,12 @@ function AdminOrders() {
                         <CheckCircle2 className="size-3.5" /> Accept
                       </Button>
                     )}
-                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setView(o)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => setView(o)}
+                    >
                       View
                     </Button>
                   </div>
@@ -210,7 +230,9 @@ function AdminOrders() {
                   <p className="text-xs text-muted-foreground mb-1">Deliver to</p>
                   <p>{view.addr.line1}</p>
                   {view.addr.line2 && <p>{view.addr.line2}</p>}
-                  <p>{view.addr.city} {view.addr.pin}</p>
+                  <p>
+                    {view.addr.city} {view.addr.pin}
+                  </p>
                 </div>
               </div>
 
@@ -218,18 +240,35 @@ function AdminOrders() {
                 <p className="text-xs text-muted-foreground mb-2">Items</p>
                 {view.items.map((i) => (
                   <div key={i.id} className="flex justify-between py-0.5">
-                    <span>{i.qty} × {i.name}</span>
+                    <span>
+                      {i.qty} × {i.name}
+                    </span>
                     <span>{inr(i.qty * i.price)}</span>
                   </div>
                 ))}
                 <div className="border-t border-border mt-2 pt-2 space-y-0.5">
-                  <div className="flex justify-between text-muted-foreground"><span>Subtotal</span><span>{inr(view.subtotal)}</span></div>
-                  <div className="flex justify-between text-muted-foreground"><span>GST</span><span>{inr(view.tax)}</span></div>
-                  <div className="flex justify-between text-muted-foreground"><span>Delivery</span><span>{view.delivery === 0 ? "FREE" : inr(view.delivery)}</span></div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Subtotal</span>
+                    <span>{inr(view.subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>GST</span>
+                    <span>{inr(view.tax)}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Delivery</span>
+                    <span>{view.delivery === 0 ? "FREE" : inr(view.delivery)}</span>
+                  </div>
                   {view.discount > 0 && (
-                    <div className="flex justify-between text-green-600"><span>Coupon ({view.couponCode})</span><span>-{inr(view.discount)}</span></div>
+                    <div className="flex justify-between text-green-600">
+                      <span>Coupon ({view.couponCode})</span>
+                      <span>-{inr(view.discount)}</span>
+                    </div>
                   )}
-                  <div className="flex justify-between font-bold text-base pt-1 border-t border-border"><span>Total</span><span>{inr(view.total)}</span></div>
+                  <div className="flex justify-between font-bold text-base pt-1 border-t border-border">
+                    <span>Total</span>
+                    <span>{inr(view.total)}</span>
+                  </div>
                 </div>
               </div>
 
@@ -250,16 +289,18 @@ function AdminOrders() {
                       <MessageCircle className="size-3.5" /> Accept & WhatsApp
                     </Button>
                   )}
-                  {statuses.filter((s) => s !== "Pending").map((s) => (
-                    <Button
-                      key={s}
-                      size="sm"
-                      variant={view.status === s ? "default" : "outline"}
-                      onClick={() => setStatus(view.id, s)}
-                    >
-                      {s}
-                    </Button>
-                  ))}
+                  {statuses
+                    .filter((s) => s !== "Pending")
+                    .map((s) => (
+                      <Button
+                        key={s}
+                        size="sm"
+                        variant={view.status === s ? "default" : "outline"}
+                        onClick={() => setStatus(view.id, s)}
+                      >
+                        {s}
+                      </Button>
+                    ))}
                 </div>
               </div>
             </div>

@@ -30,9 +30,7 @@ export const useCart = create<CartState>()(
           const existing = s.lines.find((l) => l.id === item.id);
           if (existing) {
             return {
-              lines: s.lines.map((l) =>
-                l.id === item.id ? { ...l, qty: l.qty + qty } : l,
-              ),
+              lines: s.lines.map((l) => (l.id === item.id ? { ...l, qty: l.qty + qty } : l)),
             };
           }
           return {
@@ -45,7 +43,10 @@ export const useCart = create<CartState>()(
       remove: (id) => set((s) => ({ lines: s.lines.filter((l) => l.id !== id) })),
       setQty: (id, qty) =>
         set((s) => ({
-          lines: qty <= 0 ? s.lines.filter((l) => l.id !== id) : s.lines.map((l) => (l.id === id ? { ...l, qty } : l)),
+          lines:
+            qty <= 0
+              ? s.lines.filter((l) => l.id !== id)
+              : s.lines.map((l) => (l.id === id ? { ...l, qty } : l)),
         })),
       clear: () => set({ lines: [] }),
       count: () => get().lines.reduce((s, l) => s + l.qty, 0),

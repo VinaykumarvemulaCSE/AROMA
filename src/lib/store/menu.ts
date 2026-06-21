@@ -1,7 +1,15 @@
 // src/lib/store/menu.ts
 import { create } from "zustand";
 import { db } from "../firebase";
-import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, query } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  query,
+} from "firebase/firestore";
 import { categories, type Category, type MenuItem } from "../mock/menu";
 
 export type { Category, MenuItem };

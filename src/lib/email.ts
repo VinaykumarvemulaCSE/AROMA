@@ -23,15 +23,17 @@ function getTransporter() {
 
   if (!host || !user || !pass) {
     // Return a dummy transporter for development/fallback
-    console.warn("SMTP credentials missing in .env. Email sending will be logged to console instead.");
+    console.warn(
+      "SMTP credentials missing in .env. Email sending will be logged to console instead.",
+    );
     return {
-      sendMail: async (options: any) => {
+      sendMail: async (options: nodemailer.SendMailOptions) => {
         console.log("--- MOCK EMAIL SENT ---");
         console.log(`To: ${options.to}`);
         console.log(`Subject: ${options.subject}`);
-        console.log(`HTML: ${options.html.substring(0, 300)}...`);
+        console.log(`HTML: ${(options.html as string).substring(0, 300)}...`);
         return { messageId: "mock-id-" + Date.now() };
-      }
+      },
     };
   }
 
@@ -60,11 +62,11 @@ export async function sendOrderEmailInternal(data: {
   cutlery: boolean;
 }) {
   const transporter = getTransporter();
-    const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_FROM || "";
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_FROM || "";
 
-    const itemsRows = data.items
-      .map(
-        (item) => `
+  const itemsRows = data.items
+    .map(
+      (item) => `
       <tr>
         <td style="padding: 10px 0; border-bottom: 1px solid #eee;">
           <div style="font-weight: 600;">${item.name}</div>
@@ -73,11 +75,11 @@ export async function sendOrderEmailInternal(data: {
         <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right; font-weight: 600;">
           ${inrFormat(item.qty * item.price)}
         </td>
-      </tr>`
-      )
-      .join("");
+      </tr>`,
+    )
+    .join("");
 
-    const htmlContent = `
+  const htmlContent = `
       <div style="font-family: 'Inter', system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff; color: #1a202c;">
         <div style="text-align: center; padding-bottom: 20px; border-bottom: 2px solid #f7fafc;">
           <h1 style="font-size: 24px; font-weight: 800; color: #854d0e; margin: 0;">Aroma Cafe & Restaurant</h1>
@@ -134,7 +136,7 @@ export async function sendOrderEmailInternal(data: {
         </table>
 
         <div style="text-align: center; padding: 10px 0 20px 0;">
-          <a href="${process.env.VITE_APP_URL || 'https://aroma.in'}/track/${data.orderId}" style="display: inline-block; background-color: #854d0e; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">Track Your Order</a>
+          <a href="${process.env.VITE_APP_URL || "https://aroma.in"}/track/${data.orderId}" style="display: inline-block; background-color: #854d0e; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">Track Your Order</a>
         </div>
 
         <div style="border-top: 1px solid #edf2f7; padding-top: 20px; text-align: center; font-size: 12px; color: #a0aec0;">
@@ -144,24 +146,24 @@ export async function sendOrderEmailInternal(data: {
       </div>
     `;
 
-    const fromAddress = process.env.SMTP_FROM || "no-reply@aromacafe.in";
+  const fromAddress = process.env.SMTP_FROM || "no-reply@aromacafe.in";
 
-    // Send receipt to customer
-    const userMailPromise = transporter.sendMail({
-      from: `"Aroma Cafe" <${fromAddress}>`,
-      to: data.customerEmail,
-      subject: `Order Confirmation #${data.orderId} - Aroma Cafe`,
-      html: htmlContent,
-    });
+  // Send receipt to customer
+  const userMailPromise = transporter.sendMail({
+    from: `"Aroma Cafe" <${fromAddress}>`,
+    to: data.customerEmail,
+    subject: `Order Confirmation #${data.orderId} - Aroma Cafe`,
+    html: htmlContent,
+  });
 
-    // Send alert to admin
-    let adminMailPromise: Promise<any> = Promise.resolve(null);
-    if (adminEmail) {
-      adminMailPromise = transporter.sendMail({
-        from: `"Aroma System" <${fromAddress}>`,
-        to: adminEmail,
-        subject: `🚨 NEW ORDER RECEIVED: #${data.orderId}`,
-        html: `
+  // Send alert to admin
+  let adminMailPromise: Promise<unknown> = Promise.resolve(null);
+  if (adminEmail) {
+    adminMailPromise = transporter.sendMail({
+      from: `"Aroma System" <${fromAddress}>`,
+      to: adminEmail,
+      subject: `🚨 NEW ORDER RECEIVED: #${data.orderId}`,
+      html: `
           <div style="font-family: 'Inter', system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff; color: #1a202c;">
             <div style="text-align: center; padding-bottom: 20px; border-bottom: 2px solid #f7fafc;">
               <h1 style="font-size: 20px; font-weight: 800; color: #e53e3e; margin: 0;">🚨 New Order Alert</h1>
@@ -174,19 +176,19 @@ export async function sendOrderEmailInternal(data: {
               <p style="margin: 4px 0;"><strong>Total:</strong> ${inrFormat(data.total)}</p>
             </div>
             <div style="text-align: center; padding: 10px 0 10px 0;">
-              <a href="${process.env.VITE_APP_URL || 'https://aroma.in'}/admin/orders" style="display: inline-block; background-color: #1a202c; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;">Open Admin Dashboard</a>
+              <a href="${process.env.VITE_APP_URL || "https://aroma.in"}/admin/orders" style="display: inline-block; background-color: #1a202c; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;">Open Admin Dashboard</a>
             </div>
           </div>
         `,
-      });
-    }
+    });
+  }
 
   try {
     await Promise.all([userMailPromise, adminMailPromise]);
     return { success: true };
-  } catch (e: any) {
+  } catch (e) {
     console.error("Failed to send order email:", e);
-    return { success: false, error: e.message };
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
@@ -204,8 +206,8 @@ export async function sendReservationEmailInternal(data: {
   const transporter = getTransporter();
   const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_FROM || "";
 
-  const locationLink = data.location 
-    ? `<p style="margin: 4px 0;"><strong>Location:</strong> <a href="https://www.google.com/maps/dir/?api=1&destination=${data.location.latitude},${data.location.longitude}&destination_place_id=${data.location.placeId}">${data.location.address}</a></p>` 
+  const locationLink = data.location
+    ? `<p style="margin: 4px 0;"><strong>Location:</strong> <a href="https://www.google.com/maps/dir/?api=1&destination=${data.location.latitude},${data.location.longitude}&destination_place_id=${data.location.placeId}">${data.location.address}</a></p>`
     : "";
 
   const htmlContent = `
@@ -251,7 +253,7 @@ export async function sendReservationEmailInternal(data: {
 
   const fromAddress = process.env.SMTP_FROM || "no-reply@aromacafe.in";
 
-  let userMailPromise: Promise<any> = Promise.resolve(null);
+  let userMailPromise: Promise<unknown> = Promise.resolve(null);
   if (data.customerEmail) {
     userMailPromise = transporter.sendMail({
       from: `"Aroma Cafe" <${fromAddress}>`,
@@ -261,7 +263,7 @@ export async function sendReservationEmailInternal(data: {
     });
   }
 
-  let adminMailPromise: Promise<any> = Promise.resolve(null);
+  let adminMailPromise: Promise<unknown> = Promise.resolve(null);
   if (adminEmail) {
     adminMailPromise = transporter.sendMail({
       from: `"Aroma System" <${fromAddress}>`,
@@ -280,7 +282,7 @@ export async function sendReservationEmailInternal(data: {
             ${locationLink}
           </div>
           <div style="text-align: center; padding: 10px 0 10px 0;">
-            <a href="${process.env.VITE_APP_URL || 'https://aroma.in'}/admin/reservations" style="display: inline-block; background-color: #1a202c; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;">Open Reservations</a>
+            <a href="${process.env.VITE_APP_URL || "https://aroma.in"}/admin/reservations" style="display: inline-block; background-color: #1a202c; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;">Open Reservations</a>
           </div>
         </div>
       `,
@@ -290,9 +292,9 @@ export async function sendReservationEmailInternal(data: {
   try {
     await Promise.all([userMailPromise, adminMailPromise]);
     return { success: true };
-  } catch (e: any) {
+  } catch (e) {
     console.error("Failed to send reservation email:", e);
-    return { success: false, error: e.message };
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
@@ -333,8 +335,8 @@ export const sendContactEmail = createServerFn({ method: "POST" })
         `,
       });
       return { success: true };
-    } catch (e: any) {
+    } catch (e) {
       console.error("Failed to send contact email:", e);
-      return { success: false, error: e.message };
+      return { success: false, error: e instanceof Error ? e.message : String(e) };
     }
   });
