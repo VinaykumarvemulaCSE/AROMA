@@ -15,6 +15,7 @@ import {
   orderBy,
   getDoc,
 } from "firebase/firestore";
+import { sendReservationStatusEmail } from "../api/reservation-status-email";
 
 export type TimeSlot = {
   datetime: string; // ISO date + time e.g. "2026-06-20T19:30"
@@ -143,7 +144,40 @@ export const useTables = create<TableState>()((set, get) => ({
   },
 
   updateReservationStatus: async (id, status) => {
-    await updateDoc(doc(db, "reservations", id), { status });
+    // Get reservation details before updating
+    const reservationRef = doc(db, "reservations", id);
+    const reservationSnap = await getDoc(reservationRef);
+    
+    if (!reservationSnap.exists()) {
+      console.error("Reservation not found:", id);
+      return;
+    }
+
+    const reservation = reservationSnap.data() as Reservation;
+    const oldStatus = reservation.status;
+
+    // Update status in Firestore
+    await updateDoc(reservationRef, { status });
+
+    // Send email notification if status changed and customer has email
+    if (oldStatus !== status && reservation.email) {
+      try {
+        await sendReservationStatusEmail({
+          data: {
+            reservationId: reservation.id,
+            customerName: reservation.name,
+            customerEmail: reservation.email,
+            status,
+            date: reservation.slotDatetime.split("T")[0],
+            timeSlot: reservation.slotDatetime.split("T")[1],
+            guests: reservation.partySize,
+          },
+        });
+      } catch (error) {
+        console.error("Failed to send reservation status email:", error);
+        // Don't throw error - email failure shouldn't block status update
+      }
+    }
   },
 
   listenToTables: () => {

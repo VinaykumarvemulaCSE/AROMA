@@ -13,8 +13,10 @@ import {
   query,
   orderBy,
   where,
+  getDoc,
 } from "firebase/firestore";
 import { submitReview as submitReviewApi } from "../api/reviews";
+import { sendReviewApprovalEmail } from "../api/review-approval-email";
 
 export type ReviewStatus = "pending" | "approved" | "rejected";
 
@@ -49,7 +51,41 @@ export const useReviews = create<ReviewsState>()((set) => ({
   },
 
   setStatus: async (id, status) => {
-    await updateDoc(doc(db, "reviews", id), { status });
+    // Get review details before updating
+    const reviewRef = doc(db, "reviews", id);
+    const reviewSnap = await getDoc(reviewRef);
+    
+    if (!reviewSnap.exists()) {
+      console.error("Review not found:", id);
+      return;
+    }
+
+    const review = reviewSnap.data() as StoredReview;
+    const oldStatus = review.status;
+
+    // Update status in Firestore
+    await updateDoc(reviewRef, { status });
+
+    // Send approval email if status changed to approved and we have email
+    if (oldStatus !== status && status === "approved") {
+      const customerEmail = review.name.includes("@") ? review.name : undefined;
+      if (customerEmail) {
+        try {
+          await sendReviewApprovalEmail({
+            data: {
+              customerName: review.name,
+              customerEmail,
+              reviewText: review.body,
+              rating: review.rating,
+              itemName: review.itemId,
+            },
+          });
+        } catch (error) {
+          console.error("Failed to send review approval email:", error);
+          // Don't throw error - email failure shouldn't block status update
+        }
+      }
+    }
   },
 
   remove: async (id) => {

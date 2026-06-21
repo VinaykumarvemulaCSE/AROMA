@@ -24,6 +24,8 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TrackOrderIdRouteImport } from './routes/track.$orderId'
+import { Route as AuthVerifyEmailRouteImport } from './routes/auth.verify-email'
+import { Route as AuthVerifyRouteImport } from './routes/auth.verify'
 import { Route as AuthSignupRouteImport } from './routes/auth.signup'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AdminTablesRouteImport } from './routes/admin.tables'
@@ -111,6 +113,16 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
 const TrackOrderIdRoute = TrackOrderIdRouteImport.update({
   id: '/track/$orderId',
   path: '/track/$orderId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthVerifyEmailRoute = AuthVerifyEmailRouteImport.update({
+  id: '/auth/verify-email',
+  path: '/auth/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthVerifyRoute = AuthVerifyRouteImport.update({
+  id: '/auth/verify',
+  path: '/auth/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthSignupRoute = AuthSignupRouteImport.update({
@@ -206,6 +218,8 @@ export interface FileRoutesByFullPath {
   '/admin/tables': typeof AdminTablesRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
+  '/auth/verify': typeof AuthVerifyRoute
+  '/auth/verify-email': typeof AuthVerifyEmailRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -235,6 +249,8 @@ export interface FileRoutesByTo {
   '/admin/tables': typeof AdminTablesRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
+  '/auth/verify': typeof AuthVerifyRoute
+  '/auth/verify-email': typeof AuthVerifyEmailRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin': typeof AdminIndexRoute
 }
@@ -266,6 +282,8 @@ export interface FileRoutesById {
   '/admin/tables': typeof AdminTablesRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
+  '/auth/verify': typeof AuthVerifyRoute
+  '/auth/verify-email': typeof AuthVerifyEmailRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -298,6 +316,8 @@ export interface FileRouteTypes {
     | '/admin/tables'
     | '/auth/login'
     | '/auth/signup'
+    | '/auth/verify'
+    | '/auth/verify-email'
     | '/track/$orderId'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
@@ -327,6 +347,8 @@ export interface FileRouteTypes {
     | '/admin/tables'
     | '/auth/login'
     | '/auth/signup'
+    | '/auth/verify'
+    | '/auth/verify-email'
     | '/track/$orderId'
     | '/admin'
   id:
@@ -357,6 +379,8 @@ export interface FileRouteTypes {
     | '/admin/tables'
     | '/auth/login'
     | '/auth/signup'
+    | '/auth/verify'
+    | '/auth/verify-email'
     | '/track/$orderId'
     | '/admin/'
   fileRoutesById: FileRoutesById
@@ -377,6 +401,8 @@ export interface RootRouteChildren {
   ReviewsRoute: typeof ReviewsRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthSignupRoute: typeof AuthSignupRoute
+  AuthVerifyRoute: typeof AuthVerifyRoute
+  AuthVerifyEmailRoute: typeof AuthVerifyEmailRoute
   TrackOrderIdRoute: typeof TrackOrderIdRoute
 }
 
@@ -485,6 +511,20 @@ declare module '@tanstack/react-router' {
       path: '/track/$orderId'
       fullPath: '/track/$orderId'
       preLoaderRoute: typeof TrackOrderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/verify-email': {
+      id: '/auth/verify-email'
+      path: '/auth/verify-email'
+      fullPath: '/auth/verify-email'
+      preLoaderRoute: typeof AuthVerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/verify': {
+      id: '/auth/verify'
+      path: '/auth/verify'
+      fullPath: '/auth/verify'
+      preLoaderRoute: typeof AuthVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/signup': {
@@ -629,6 +669,8 @@ const rootRouteChildren: RootRouteChildren = {
   ReviewsRoute: ReviewsRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthSignupRoute: AuthSignupRoute,
+  AuthVerifyRoute: AuthVerifyRoute,
+  AuthVerifyEmailRoute: AuthVerifyEmailRoute,
   TrackOrderIdRoute: TrackOrderIdRoute,
 }
 export const routeTree = rootRouteImport

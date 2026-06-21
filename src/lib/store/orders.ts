@@ -12,7 +12,11 @@ import {
   query,
   orderBy,
   where,
+  getDoc,
 } from "firebase/firestore";
+import { sendOrderStatusEmail } from "../api/order-status-email";
+import { sendOrderCancellationEmail } from "../api/order-cancellation-email";
+import { useAuth } from "./auth";
 
 export type OrderStatus =
   | "Pending"
@@ -71,6 +75,7 @@ type OrdersState = {
   orders: Order[];
   setOrders: (orders: Order[]) => void;
   updateStatus: (id: string, status: OrderStatus) => Promise<void>;
+  updateStatusWithLoading: (id: string, status: OrderStatus) => Promise<{ success: boolean; error?: string }>;
   listenToOrders: (userId?: string, role?: "customer" | "admin") => () => void;
   listenToOrder: (orderId: string, onOrder: (order: Order | null) => void) => () => void;
 };
@@ -79,8 +84,69 @@ export const useOrders = create<OrdersState>()((set) => ({
   orders: [],
   setOrders: (orders) => set({ orders }),
   updateStatus: async (id, status) => {
+    // Get order details before updating
+    const orderRef = doc(db, "orders", id);
+    const orderSnap = await getDoc(orderRef);
+    
+    if (!orderSnap.exists()) {
+      console.error("Order not found:", id);
+      return;
+    }
+
+    const order = orderSnap.data() as Order;
+    const oldStatus = order.status;
+
     // Update status in Firestore
-    await updateDoc(doc(db, "orders", id), { status });
+    await updateDoc(orderRef, { status });
+
+    // Send email notification if status changed and customer has email
+    if (oldStatus !== status && order.contact.email) {
+      try {
+        // Check if user has email notifications enabled (if user exists)
+        const user = useAuth.getState().user;
+        const emailEnabled = !user || user.notifications?.email !== false;
+
+        if (emailEnabled) {
+          // Send cancellation email specifically
+          if (status === "Cancelled") {
+            await sendOrderCancellationEmail({
+              data: {
+                orderId: order.id,
+                customerName: order.contact.name,
+                customerEmail: order.contact.email,
+                items: order.items,
+                total: order.total,
+              },
+            });
+          } else {
+            // Send regular status update email
+            await sendOrderStatusEmail({
+              data: {
+                orderId: order.id,
+                customerName: order.contact.name,
+                customerEmail: order.contact.email,
+                status,
+                items: order.items,
+                total: order.total,
+              },
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Failed to send order email:", error);
+        // Don't throw error - email failure shouldn't block status update
+      }
+    }
+  },
+
+  updateStatusWithLoading: async (id, status) => {
+    try {
+      await updateDoc(doc(db, "orders", id), { status });
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to update order status:", error);
+      return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+    }
   },
   listenToOrders: (userId, role) => {
     let q = query(collection(db, "orders"), orderBy("createdAt", "desc"));

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { sendCustomVerificationEmail } from "@/lib/api/custom-verification";
 
 export const Route = createFileRoute("/auth/signup")({
   head: () => ({ meta: [{ title: "Create account — Aroma Cafe" }] }),
@@ -33,8 +34,12 @@ function Signup() {
     try {
       const cred = await createUserWithEmailAndPassword(auth, form.email, form.pwd);
       await updateProfile(cred.user, { displayName: form.name });
-      toast.success("Account created! Welcome to Aroma 🎉");
-      navigate({ to: "/profile" });
+      
+      // Send custom verification email
+      await sendCustomVerificationEmail({ data: { email: form.email } });
+      
+      toast.success("Account created! Please check your email to verify.");
+      navigate({ to: "/auth/verify-email" });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Sign up failed.";
       toast.error(message);

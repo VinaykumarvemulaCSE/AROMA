@@ -11,6 +11,12 @@ export type User = {
   phone?: string;
   avatar?: string;
   role: "customer" | "admin";
+  emailVerified: boolean;
+  notifications?: {
+    email: boolean;
+    sms: boolean;
+    promo: boolean;
+  };
   reservationPrefs?: {
     preferredTime?: string;
     preferredParty?: number;

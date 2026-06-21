@@ -62,6 +62,13 @@ function Profile() {
   const menu = useMenu((s) => s.menu);
   const { reservations } = useTables();
 
+  // Redirect unverified users to verification page
+  useEffect(() => {
+    if (user && !user.emailVerified && user.role === "customer") {
+      navigate({ to: "/auth/verify-email" });
+    }
+  }, [user, navigate]);
+
   const { addresses, addAddress, updateAddress, removeAddress, setDefault } = useAddresses();
   const [addrOpen, setAddrOpen] = useState(false);
   const [editingAddr, setEditingAddr] = useState<SavedAddress | null>(null);

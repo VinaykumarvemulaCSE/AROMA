@@ -15,6 +15,12 @@ export async function mapFirebaseUser(fbUser: FirebaseUser): Promise<User> {
     email: fbUser.email ?? "",
     avatar: fbUser.photoURL ?? undefined,
     role,
+    emailVerified: fbUser.emailVerified,
+    notifications: {
+      email: true,
+      sms: true,
+      promo: false,
+    },
   };
 }
 

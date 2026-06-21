@@ -12,6 +12,9 @@ service cloud.firestore {
     function isOrderOwner() {
       return request.auth != null && resource.data.userId == request.auth.uid;
     }
+    function isEmailVerified() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
 
     // ---------- Public collections ----------
     match /menu_items/{itemId} {
@@ -44,6 +47,12 @@ service cloud.firestore {
 
     match /users/{userId}/addresses/{addressId} {
       allow read, write: if isOwner(userId) || isAdmin();
+    }
+
+    // User profile (name, phone, notifications)
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if (isOwner(userId) && isEmailVerified()) || isAdmin();
     }
 
     match /reviews/{reviewId} {

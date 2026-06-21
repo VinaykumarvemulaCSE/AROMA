@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check, ChevronRight, ChevronLeft, MessageCircle, Tag, X, MapPin } from "lucide-react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { Button } from "@/components/ui/button";
@@ -57,16 +57,20 @@ function CheckoutPage() {
   const delivery = subtotal >= 499 ? 0 : 40;
 
   const [step, setStep] = useState(0);
+  
+  // Auto-fill address from saved default address or user profile
+  const defaultAddress = addresses.find((a) => a.isDefault) || addresses[0];
   const [addr, setAddr] = useState<AddrForm>({
-    line1: "",
-    line2: "",
-    landmark: "",
-    city: "Nalgonda",
-    pin: "",
-    phone: "",
-    type: "Home",
-    notes: "",
+    line1: defaultAddress?.line1 ?? "",
+    line2: defaultAddress?.line2 ?? "",
+    landmark: defaultAddress?.landmark ?? "",
+    city: defaultAddress?.city ?? "Nalgonda",
+    pin: defaultAddress?.pin ?? "",
+    phone: defaultAddress?.phone ?? user?.phone ?? "",
+    type: defaultAddress?.label ?? "Home",
+    notes: defaultAddress?.notes ?? "",
   });
+  
   const [contact, setContact] = useState<ContactForm>({
     name: user?.name ?? "",
     email: user?.email ?? "",
@@ -77,6 +81,34 @@ function CheckoutPage() {
   });
   const [agree, setAgree] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Auto-fill forms when user logs in or addresses change
+  useEffect(() => {
+    if (user) {
+      setContact((prev) => ({
+        ...prev,
+        name: user.name || prev.name,
+        email: user.email || prev.email,
+        phone: user.phone || prev.phone,
+      }));
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const defaultAddress = addresses.find((a) => a.isDefault) || addresses[0];
+    if (defaultAddress) {
+      setAddr({
+        line1: defaultAddress.line1,
+        line2: defaultAddress.line2 ?? "",
+        landmark: defaultAddress.landmark ?? "",
+        city: defaultAddress.city,
+        pin: defaultAddress.pin,
+        phone: defaultAddress.phone || user?.phone || "",
+        type: defaultAddress.label,
+        notes: defaultAddress.notes ?? "",
+      });
+    }
+  }, [addresses, user]);
 
   // Coupon
   const [couponInput, setCouponInput] = useState("");
