@@ -97,8 +97,15 @@ export const createOrder = createServerFn({ method: "POST" })
       }
     }
 
-    const tax = Math.round(subtotal * 0.05);
-    const delivery = subtotal >= 499 ? 0 : 40;
+    // Fetch settings for dynamic tax and delivery fees
+    const settingsDoc = await adminDb.collection("settings").doc("restaurant").get();
+    const settings = settingsDoc.exists ? settingsDoc.data() : { gst: 5, freeDeliveryAbove: 499 };
+    
+    const gstRate = settings?.gst ?? 5;
+    const freeDeliveryThreshold = settings?.freeDeliveryAbove ?? 499;
+    
+    const tax = Math.round(subtotal * gstRate / 100);
+    const delivery = subtotal >= freeDeliveryThreshold ? 0 : 40;
     const total = Math.max(0, subtotal + tax + delivery - discount);
 
     const orderId = `AC${Date.now().toString().slice(-6)}${Math.random().toString(36).slice(2, 6)}`;

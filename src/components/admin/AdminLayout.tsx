@@ -14,6 +14,7 @@ import {
   Menu as MenuIcon,
   X,
   TableProperties,
+  Image,
 } from "lucide-react";
 import { useAuth } from "@/lib/store/auth";
 import { useOrders } from "@/lib/store/orders";
@@ -30,7 +31,7 @@ const nav = [
   { to: "/admin/tables", label: "Table Mgmt", icon: TableProperties },
   { to: "/admin/customers", label: "Customers", icon: Users },
   { to: "/admin/reviews", label: "Reviews", icon: Star },
-  { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/admin/gallery", label: "Gallery", icon: Image },
   { to: "/admin/promotions", label: "Promotions", icon: Tag },
   { to: "/admin/staff", label: "Staff", icon: UserCog },
   { to: "/admin/settings", label: "Settings", icon: Settings },

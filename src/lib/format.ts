@@ -5,6 +5,7 @@ export const inr = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n);
 
+// Default cafe info - will be overridden by settings from Firestore
 export const cafeInfo = {
   name: "Aroma Cafe & Restaurant",
   tagline: "Brewed with love in Nalgonda",
@@ -18,4 +19,18 @@ export const cafeInfo = {
   instagram: "https://instagram.com",
   facebook: "https://facebook.com",
   mapsUrl: "https://maps.google.com/?q=Nalgonda",
+};
+
+// Function to get dynamic cafe info from settings
+export const getCafeInfo = (settings?: any) => {
+  if (!settings) return cafeInfo;
+  
+  return {
+    ...cafeInfo,
+    name: settings.name || cafeInfo.name,
+    phone: settings.phone || cafeInfo.phone,
+    whatsapp: settings.whatsapp || cafeInfo.whatsapp,
+    email: settings.email || cafeInfo.email,
+    address: settings.address || cafeInfo.address,
+  };
 };

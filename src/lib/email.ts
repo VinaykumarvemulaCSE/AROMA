@@ -717,6 +717,7 @@ export async function sendPasswordResetEmailInternal(data: {
 // 8. Contact Form Email
 import { contactMessageSchema } from "./validation/schemas";
 import { rateLimit } from "./api/rate-limit";
+import { sanitizeInput } from "./sanitize";
 
 export const sendContactEmail = createServerFn({ method: "POST" })
   .validator((data: unknown) => contactMessageSchema.parse(data))
@@ -742,11 +743,11 @@ export const sendContactEmail = createServerFn({ method: "POST" })
               <p style="font-size: 13px; color: #718096; margin: 4px 0 0 0;">Aroma Cafe — Contact Form</p>
             </div>
             <div style="padding: 20px 0;">
-              <p style="margin: 4px 0;"><strong>From:</strong> ${escapeHtml(data.name)}</p>
+              <p style="margin: 4px 0;"><strong>From:</strong> ${escapeHtml(sanitizeInput(data.name))}</p>
               <p style="margin: 4px 0;"><strong>Email:</strong> <a href="mailto:${escapeHtml(data.email)}">${escapeHtml(data.email)}</a></p>
             </div>
-            <div style="background: #f7fafc; padding: 16px; border-radius: 8px; font-size: 14px; line-height: 1.6; color: #2d3748; white-space: pre-wrap;">${escapeHtml(data.message)}</div>
-            <p style="margin-top: 16px; font-size: 12px; color: #a0aec0;">Reply directly to this email to respond to ${data.name}.</p>
+            <div style="background: #f7fafc; padding: 16px; border-radius: 8px; font-size: 14px; line-height: 1.6; color: #2d3748; white-space: pre-wrap;">${escapeHtml(sanitizeInput(data.message))}</div>
+            <p style="margin-top: 16px; font-size: 12px; color: #a0aec0;">Reply directly to this email to respond to ${sanitizeInput(data.name)}.</p>
           </div>
         `,
       });

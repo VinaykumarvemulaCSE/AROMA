@@ -150,6 +150,7 @@ function ItemFormDialog({
       category: "Main Course",
       image:
         "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80",
+      publicId: "",
       veg: true,
       spice: 0,
       prepTime: 15,
@@ -173,6 +174,7 @@ function ItemFormDialog({
         category: "Main Course",
         image:
           "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80",
+        publicId: "",
         veg: true,
         spice: 0,
         prepTime: 15,
@@ -214,7 +216,7 @@ function ItemFormDialog({
         },
       });
 
-      setF((prev) => ({ ...prev, image: res.url }));
+      setF((prev) => ({ ...prev, image: res.url, publicId: res.publicId || "" }));
       toast.success("Image uploaded securely!");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Upload failed.");

@@ -3,6 +3,7 @@ import { Trash2, ShoppingBag } from "lucide-react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/store/cart";
+import { useSettings } from "@/lib/store/settings";
 import { inr } from "@/lib/format";
 
 export const Route = createFileRoute("/cart")({
@@ -20,9 +21,13 @@ function CartPage() {
   const setQty = useCart((s) => s.setQty);
   const remove = useCart((s) => s.remove);
   const clear = useCart((s) => s.clear);
+  const settings = useSettings((s) => s.settings);
+  
   const subtotal = lines.reduce((s, l) => s + l.qty * l.price, 0);
-  const tax = Math.round(subtotal * 0.05);
-  const delivery = subtotal > 0 ? (subtotal >= 499 ? 0 : 40) : 0;
+  const gstRate = settings?.gst ?? 5;
+  const freeDeliveryThreshold = settings?.freeDeliveryAbove ?? 499;
+  const tax = Math.round(subtotal * gstRate / 100);
+  const delivery = subtotal > 0 ? (subtotal >= freeDeliveryThreshold ? 0 : 40) : 0;
   const total = subtotal + tax + delivery;
 
   return (
@@ -105,11 +110,11 @@ function CartPage() {
               <h2 className="font-display font-semibold text-lg">Order summary</h2>
               <dl className="mt-4 space-y-2 text-sm">
                 <Row label="Subtotal" value={inr(subtotal)} />
-                <Row label="GST (5%)" value={inr(tax)} />
+                <Row label={`GST (${gstRate}%)`} value={inr(tax)} />
                 <Row label="Delivery" value={delivery === 0 ? "FREE" : inr(delivery)} />
-                {subtotal < 499 && (
+                {subtotal < freeDeliveryThreshold && (
                   <p className="text-xs text-muted-foreground">
-                    Add {inr(499 - subtotal)} more for free delivery.
+                    Add {inr(freeDeliveryThreshold - subtotal)} more for free delivery.
                   </p>
                 )}
                 <div className="border-t border-border pt-3 mt-3 flex justify-between font-display font-bold text-lg">

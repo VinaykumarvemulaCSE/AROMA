@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
+import { useGallery } from "@/lib/store/gallery";
 
 export const Route = createFileRoute("/gallery")({
   head: () => ({
@@ -13,27 +14,18 @@ export const Route = createFileRoute("/gallery")({
   component: Gallery,
 });
 
-const photos = [
-  { src: "photo-1559339352-11d035aa65de", cat: "Interior" },
-  { src: "photo-1414235077428-338989a2e8c0", cat: "Interior" },
-  { src: "photo-1517248135467-4c7edcad34c4", cat: "Food" },
-  { src: "photo-1554118811-1e0d58224f24", cat: "Food" },
-  { src: "photo-1572442388796-11668a67e53d", cat: "Food" },
-  { src: "photo-1461023058943-07fcbe16d735", cat: "Food" },
-  { src: "photo-1525351484163-7529414344d8", cat: "Food" },
-  { src: "photo-1576092768241-dec231879fc3", cat: "Food" },
-  { src: "photo-1554118811-1e0d58224f24", cat: "Interior" },
-  { src: "photo-1559339352-11d035aa65de", cat: "Interior" },
-  { src: "photo-1517248135467-4c7edcad34c4", cat: "Events" },
-  { src: "photo-1414235077428-338989a2e8c0", cat: "Events" },
-];
-
-const cats = ["All", "Interior", "Food", "Events"] as const;
+const cats = ["All", "Interior", "Food", "Events", "Other"] as const;
 
 function Gallery() {
+  const { images, loading, fetchImages } = useGallery();
   const [cat, setCat] = useState<(typeof cats)[number]>("All");
   const [open, setOpen] = useState<number | null>(null);
-  const list = cat === "All" ? photos : photos.filter((p) => p.cat === cat);
+
+  useEffect(() => {
+    fetchImages();
+  }, [fetchImages]);
+
+  const list = cat === "All" ? images : images.filter((p) => p.category === cat);
 
   return (
     <SiteLayout>
@@ -54,13 +46,13 @@ function Gallery() {
         <div className="mt-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {list.map((p, i) => (
             <button
-              key={i}
+              key={p.id}
               onClick={() => setOpen(i)}
               className="aspect-square rounded-2xl overflow-hidden group"
             >
               <img
-                src={`https://images.unsplash.com/${p.src}?auto=format&fit=crop&w=600&q=80`}
-                alt={p.cat}
+                src={p.url}
+                alt={p.caption || p.category}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
             </button>
@@ -77,8 +69,8 @@ function Gallery() {
             <X />
           </button>
           <img
-            src={`https://images.unsplash.com/${list[open].src}?auto=format&fit=crop&w=1600&q=85`}
-            alt=""
+            src={list[open].url}
+            alt={list[open].caption || list[open].category}
             className="max-h-full max-w-full rounded-xl"
           />
         </div>

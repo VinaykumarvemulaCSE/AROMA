@@ -15,6 +15,7 @@ export type MenuItem = {
   price: number;
   category: Category;
   image: string;
+  publicId?: string;
   veg: boolean;
   spice: 0 | 1 | 2 | 3;
   prepTime: number; // mins

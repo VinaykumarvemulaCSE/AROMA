@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useCart } from "@/lib/store/cart";
 import { useAddresses } from "@/lib/store/address";
 import { useAuth } from "@/lib/store/auth";
+import { useSettings } from "@/lib/store/settings";
 import { auth } from "@/lib/firebase";
 import { createOrder } from "@/lib/api/orders";
 import { validateCouponCode } from "@/lib/api/coupons";
@@ -51,10 +52,13 @@ function CheckoutPage() {
   const clear = useCart((s) => s.clear);
   const user = useAuth((s) => s.user);
   const { addresses } = useAddresses();
+  const settings = useSettings((s) => s.settings);
 
   const subtotal = lines.reduce((s, l) => s + l.qty * l.price, 0);
-  const tax = Math.round(subtotal * 0.05);
-  const delivery = subtotal >= 499 ? 0 : 40;
+  const gstRate = settings?.gst ?? 5;
+  const freeDeliveryThreshold = settings?.freeDeliveryAbove ?? 499;
+  const tax = Math.round(subtotal * gstRate / 100);
+  const delivery = subtotal >= freeDeliveryThreshold ? 0 : 40;
 
   const [step, setStep] = useState(0);
   
@@ -68,7 +72,7 @@ function CheckoutPage() {
     pin: defaultAddress?.pin ?? "",
     phone: defaultAddress?.phone ?? user?.phone ?? "",
     type: defaultAddress?.label ?? "Home",
-    notes: defaultAddress?.notes ?? "",
+    notes: "",
   });
   
   const [contact, setContact] = useState<ContactForm>({
@@ -105,7 +109,7 @@ function CheckoutPage() {
         pin: defaultAddress.pin,
         phone: defaultAddress.phone || user?.phone || "",
         type: defaultAddress.label,
-        notes: defaultAddress.notes ?? "",
+        notes: "",
       });
     }
   }, [addresses, user]);
@@ -664,7 +668,7 @@ function CheckoutPage() {
                 <dd>{inr(subtotal)}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">GST (5%)</dt>
+                <dt className="text-muted-foreground">GST ({gstRate}%)</dt>
                 <dd>{inr(tax)}</dd>
               </div>
               <div className="flex justify-between">

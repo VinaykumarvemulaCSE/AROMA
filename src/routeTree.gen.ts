@@ -37,8 +37,8 @@ import { Route as AdminPromotionsRouteImport } from './routes/admin.promotions'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminMenuRouteImport } from './routes/admin.menu'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as AdminGalleryRouteImport } from './routes/admin.gallery'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
-import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 
 const ReviewsRoute = ReviewsRouteImport.update({
   id: '/reviews',
@@ -180,14 +180,14 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminGalleryRoute = AdminGalleryRouteImport.update({
+  id: '/gallery',
+  path: '/gallery',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCustomersRoute = AdminCustomersRouteImport.update({
   id: '/customers',
   path: '/customers',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
   getParentRoute: () => AdminRoute,
 } as any)
 
@@ -205,8 +205,8 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/reservations': typeof ReservationsRoute
   '/reviews': typeof ReviewsRoute
-  '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/gallery': typeof AdminGalleryRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRoute
@@ -236,8 +236,8 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/reservations': typeof ReservationsRoute
   '/reviews': typeof ReviewsRoute
-  '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/gallery': typeof AdminGalleryRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRoute
@@ -269,8 +269,8 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/reservations': typeof ReservationsRoute
   '/reviews': typeof ReviewsRoute
-  '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/gallery': typeof AdminGalleryRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRoute
@@ -303,8 +303,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/reservations'
     | '/reviews'
-    | '/admin/analytics'
     | '/admin/customers'
+    | '/admin/gallery'
     | '/admin/login'
     | '/admin/menu'
     | '/admin/orders'
@@ -334,8 +334,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/reservations'
     | '/reviews'
-    | '/admin/analytics'
     | '/admin/customers'
+    | '/admin/gallery'
     | '/admin/login'
     | '/admin/menu'
     | '/admin/orders'
@@ -366,8 +366,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/reservations'
     | '/reviews'
-    | '/admin/analytics'
     | '/admin/customers'
+    | '/admin/gallery'
     | '/admin/login'
     | '/admin/menu'
     | '/admin/orders'
@@ -604,6 +604,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/gallery': {
+      id: '/admin/gallery'
+      path: '/gallery'
+      fullPath: '/admin/gallery'
+      preLoaderRoute: typeof AdminGalleryRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/customers': {
       id: '/admin/customers'
       path: '/customers'
@@ -611,19 +618,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCustomersRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/analytics': {
-      id: '/admin/analytics'
-      path: '/analytics'
-      fullPath: '/admin/analytics'
-      preLoaderRoute: typeof AdminAnalyticsRouteImport
-      parentRoute: typeof AdminRoute
-    }
   }
 }
 
 interface AdminRouteChildren {
-  AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminCustomersRoute: typeof AdminCustomersRoute
+  AdminGalleryRoute: typeof AdminGalleryRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminMenuRoute: typeof AdminMenuRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
@@ -637,8 +637,8 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
-  AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminCustomersRoute: AdminCustomersRoute,
+  AdminGalleryRoute: AdminGalleryRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminMenuRoute: AdminMenuRoute,
   AdminOrdersRoute: AdminOrdersRoute,
