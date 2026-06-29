@@ -36,7 +36,10 @@ function Signup() {
       await updateProfile(cred.user, { displayName: form.name });
       
       // Send custom verification email
-      await sendCustomVerificationEmail({ data: { email: form.email } });
+      const result = await sendCustomVerificationEmail({ data: { email: form.email } });
+      if (result && !result.success) {
+        throw new Error(result.error || "Failed to send verification email");
+      }
       
       toast.success("Account created! Please check your email to verify.");
       navigate({ to: "/auth/verify-email" });
