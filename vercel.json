@@ -3,6 +3,8 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".output/public",
   "functions": {
-    "src/server.ts": {}
+    "src/server.ts": {
+      "runtime": "vercel-php@0.7.3"
+    }
   }
 }
