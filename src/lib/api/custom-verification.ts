@@ -9,8 +9,13 @@ export const sendCustomVerificationEmail = createServerFn({ method: "POST" })
     const auth = getAuth();
     
     // Generate custom verification link
+    // Resolve the app URL: prefer explicit APP_URL env var,
+    // fall back to Vercel's auto-injected VERCEL_URL, then localhost.
+    const appUrl = process.env.APP_URL
+      ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:5173");
+    
     const actionCodeSettings = {
-      url: `${process.env.VITE_APP_URL || "http://localhost:5173"}/auth/verify`,
+      url: `${appUrl}/auth/verify`,
       handleCodeInApp: true,
     };
     

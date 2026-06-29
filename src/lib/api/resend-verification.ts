@@ -8,8 +8,13 @@ export const resendVerificationEmail = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const auth = getAuth();
     
+    // Resolve the app URL: prefer explicit APP_URL env var,
+    // fall back to Vercel's auto-injected VERCEL_URL, then localhost.
+    const appUrl = process.env.APP_URL
+      ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
     const actionCodeSettings = {
-      url: `${process.env.VITE_APP_URL || "http://localhost:3000"}/auth/verify`,
+      url: `${appUrl}/auth/verify`,
       handleCodeInApp: true,
     };
     
