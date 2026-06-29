@@ -22,8 +22,8 @@ export const cafeInfo = {
 };
 
 // Function to get dynamic cafe info from settings
-export const getCafeInfo = (settings?: any) => {
-  if (!settings) return cafeInfo;
+export const getCafeInfo = (settings?: { logoLetters?: string; locationName?: string; name?: string; phone?: string; whatsapp?: string; email?: string; address?: string; tagline?: string; instagram?: string; facebook?: string; rating?: number; reviewCount?: number } | null) => {
+  if (!settings) return { ...cafeInfo, logoLetters: "A", locationName: "Nalgonda" };
   
   return {
     ...cafeInfo,
@@ -32,5 +32,12 @@ export const getCafeInfo = (settings?: any) => {
     whatsapp: settings.whatsapp || cafeInfo.whatsapp,
     email: settings.email || cafeInfo.email,
     address: settings.address || cafeInfo.address,
+    tagline: settings.tagline || cafeInfo.tagline,
+    instagram: settings.instagram || cafeInfo.instagram,
+    facebook: settings.facebook || cafeInfo.facebook,
+    rating: settings.rating || cafeInfo.rating,
+    reviewCount: settings.reviewCount || cafeInfo.reviewCount,
+    logoLetters: settings.logoLetters || "A",
+    locationName: settings.locationName || "Nalgonda",
   };
 };

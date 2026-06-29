@@ -60,21 +60,21 @@ function Gallery() {
         </div>
       </section>
 
-      {open !== null && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 grid place-items-center p-4"
-          onClick={() => setOpen(null)}
-        >
-          <button className="absolute top-4 right-4 text-white">
-            <X />
-          </button>
-          <img
-            src={list[open].url}
-            alt={list[open].caption || list[open].category}
-            className="max-h-full max-w-full rounded-xl"
-          />
-        </div>
-      )}
+          {open !== null && (
+      <div
+        className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+        onClick={() => setOpen(null)}
+      >
+        <button className="absolute top-4 right-4 text-white" onClick={(e) => { e.stopPropagation(); setOpen(null); }}>
+          <X />
+        </button>
+        <img
+          src={list[open].url}
+          alt={list[open].caption || list[open].category}
+          className="max-h-[80vh] max-w-[90vw] rounded-xl object-contain"
+        />
+      </div>
+    )}
     </SiteLayout>
   );
 }

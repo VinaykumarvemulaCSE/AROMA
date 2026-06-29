@@ -26,8 +26,9 @@ function CartPage() {
   const subtotal = lines.reduce((s, l) => s + l.qty * l.price, 0);
   const gstRate = settings?.gst ?? 5;
   const freeDeliveryThreshold = settings?.freeDeliveryAbove ?? 499;
+  const deliveryFee = settings?.deliveryFee ?? 40;
   const tax = Math.round(subtotal * gstRate / 100);
-  const delivery = subtotal > 0 ? (subtotal >= freeDeliveryThreshold ? 0 : 40) : 0;
+  const delivery = subtotal > 0 ? (subtotal >= freeDeliveryThreshold ? 0 : deliveryFee) : 0;
   const total = subtotal + tax + delivery;
 
   return (

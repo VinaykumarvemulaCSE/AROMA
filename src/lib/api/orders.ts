@@ -99,7 +99,7 @@ export const createOrder = createServerFn({ method: "POST" })
 
     // Fetch settings for dynamic tax and delivery fees
     const settingsDoc = await adminDb.collection("settings").doc("restaurant").get();
-    const settings = settingsDoc.exists ? settingsDoc.data() : { gst: 5, freeDeliveryAbove: 499 };
+    const settings = settingsDoc.exists ? settingsDoc.data() : { gst: 5, freeDeliveryAbove: 499, deliveryFee: 40 };
     
     const gstRate = settings?.gst ?? 5;
     const freeDeliveryThreshold = settings?.freeDeliveryAbove ?? 499;

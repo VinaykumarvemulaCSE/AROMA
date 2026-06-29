@@ -57,8 +57,9 @@ function CheckoutPage() {
   const subtotal = lines.reduce((s, l) => s + l.qty * l.price, 0);
   const gstRate = settings?.gst ?? 5;
   const freeDeliveryThreshold = settings?.freeDeliveryAbove ?? 499;
+  const deliveryFee = settings?.deliveryFee ?? 40;
   const tax = Math.round(subtotal * gstRate / 100);
-  const delivery = subtotal >= freeDeliveryThreshold ? 0 : 40;
+  const delivery = subtotal >= freeDeliveryThreshold ? 0 : deliveryFee;
 
   const [step, setStep] = useState(0);
   
@@ -287,8 +288,8 @@ function CheckoutPage() {
         createdAt,
       };
 
-      const waUrl = buildOrderWhatsAppUrl(waOrder);
-      const opened = openWhatsAppInTab(waTab, waOrder);
+      const waUrl = buildOrderWhatsAppUrl(waOrder, settings?.whatsapp);
+      const opened = openWhatsAppInTab(waTab, waOrder, settings?.whatsapp);
       if (!opened) {
         sessionStorage.setItem(WA_PENDING_KEY(res.orderId), waUrl);
       }

@@ -3,7 +3,8 @@ import { ShoppingBag, User, Menu as MenuIcon, Search, Phone, X } from "lucide-re
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/store/cart";
 import { useAuth } from "@/lib/store/auth";
-import { cafeInfo } from "@/lib/format";
+import { useSettings } from "@/lib/store/settings";
+import { getCafeInfo } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
@@ -18,7 +19,15 @@ const navLinks = [
 export function Header() {
   const count = useCart((s) => s.lines.reduce((a, l) => a + l.qty, 0));
   const user = useAuth((s) => s.user);
+  const settings = useSettings((s) => s.settings);
+  const fetchSettings = useSettings((s) => s.fetchSettings);
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  const info = getCafeInfo(settings);
 
   // Lock body scroll while drawer is open
   useEffect(() => {
@@ -37,12 +46,14 @@ export function Header() {
           <div className="flex h-16 items-center justify-between gap-4">
             <Link to="/" className="flex items-center gap-2 shrink-0 min-w-0">
               <div className="grid place-items-center size-9 rounded-full bg-primary text-primary-foreground font-display font-bold shrink-0">
-                A
+                {info.logoLetters || "A"}
               </div>
               <div className="flex flex-col leading-none min-w-0">
-                <span className="font-display font-semibold text-base truncate">Aroma</span>
+                <span className="font-display font-semibold text-base truncate">
+                  {info.name.split(" ")[0]}
+                </span>
                 <span className="text-[10px] uppercase tracking-widest text-muted-foreground truncate">
-                  Cafe · Nalgonda
+                  Cafe · {info.locationName || "Nalgonda"}
                 </span>
               </div>
             </Link>
@@ -61,7 +72,7 @@ export function Header() {
             </nav>
 
             <div className="flex items-center gap-1 shrink-0">
-              <a href={`tel:${cafeInfo.phone}`} className="hidden sm:inline-flex">
+              <a href={`tel:${info.phone}`} className="hidden sm:inline-flex">
                 <Button variant="ghost" size="icon">
                   <Phone className="size-4" />
                 </Button>
@@ -135,10 +146,10 @@ export function Header() {
                 {user ? "My account" : "Sign in"}
               </Link>
               <a
-                href={`tel:${cafeInfo.phone}`}
+                href={`tel:${info.phone}`}
                 className="px-3 py-3 rounded-lg text-base font-medium hover:bg-secondary"
               >
-                Call {cafeInfo.phone}
+                Call {info.phone}
               </a>
             </nav>
           </div>

@@ -31,6 +31,7 @@ export type StoredReview = {
   helpful: number;
   verified: boolean;
   status: ReviewStatus;
+  featured?: boolean;
 };
 
 type ReviewsState = {
@@ -39,6 +40,7 @@ type ReviewsState = {
     r: Omit<StoredReview, "id" | "date" | "helpful" | "verified" | "status">,
   ) => Promise<void>;
   setStatus: (id: string, status: ReviewStatus) => Promise<void>;
+  toggleFeatured: (id: string, featured: boolean) => Promise<void>;
   remove: (id: string) => Promise<void>;
   listenToReviews: (role?: "admin" | "public") => () => void;
 };
@@ -86,6 +88,10 @@ export const useReviews = create<ReviewsState>()((set) => ({
         }
       }
     }
+  },
+
+  toggleFeatured: async (id, featured) => {
+    await updateDoc(doc(db, "reviews", id), { featured });
   },
 
   remove: async (id) => {

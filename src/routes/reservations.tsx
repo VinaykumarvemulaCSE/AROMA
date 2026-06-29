@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { CalendarClock, Check, Users, AlertCircle, Info, Save } from "lucide-react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/lib/store/auth";
+import { useSettings, type DayKey } from "@/lib/store/settings";
 import { createReservation, checkAvailability } from "@/lib/api/reservations";
 import { toast } from "sonner";
 
@@ -35,16 +36,19 @@ const occasions = [
   "Other",
 ];
 
-// Only show half-hour slots from 11:00 to 21:30
-const timeSlots = Array.from({ length: 22 }, (_, i) => {
-  const h = 11 + Math.floor(i / 2);
-  const m = i % 2 === 0 ? "00" : "30";
-  return `${h.toString().padStart(2, "0")}:${m}`;
-}).filter((t) => parseInt(t.split(":")[0]) <= 21);
-
 function Reservations() {
   const user = useAuth((s) => s.user);
   const setUser = useAuth((s) => s.setUser);
+  
+  const settings = useSettings((s) => s.settings);
+  const fetchSettings = useSettings((s) => s.fetchSettings);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  const maxPartySize = settings?.maxPartySize ?? 20;
+  const bookingWindowDays = settings?.bookingWindowDays ?? 30;
 
   // Load saved preferences from user profile
   const savedPrefs = user?.reservationPrefs || {};
@@ -61,6 +65,58 @@ function Reservations() {
     seat: savedPrefs.preferredSeat || "",
     agree: false,
   });
+
+  const getDayOfWeek = (dateStr: string): DayKey => {
+    const date = new Date(dateStr);
+    const dayIndex = date.getDay(); // 0 is Sunday, 1 is Monday, etc.
+    const days: DayKey[] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    return days[dayIndex];
+  };
+
+  const dayKey = getDayOfWeek(form.date);
+  const dayHours = settings?.hours?.[dayKey] || { open: "08:00", close: "23:00" };
+
+  const timeSlots = useMemo(() => {
+    const slots: string[] = [];
+    try {
+      const [openH, openM] = dayHours.open.split(":").map(Number);
+      const [closeH, closeM] = dayHours.close.split(":").map(Number);
+      
+      let currentH = openH;
+      let currentM = openM >= 30 ? 30 : 0;
+      if (openM > 0 && openM < 30) {
+        currentM = 30;
+      } else if (openM > 30) {
+        currentH += 1;
+        currentM = 0;
+      }
+      
+      const maxH = closeM === 0 ? closeH - 1 : closeH;
+      const maxM = closeM === 0 ? 0 : (closeM >= 30 ? 30 : 0);
+      
+      while (currentH < maxH || (currentH === maxH && currentM <= maxM)) {
+        slots.push(`${currentH.toString().padStart(2, "0")}:${currentM.toString().padStart(2, "0")}`);
+        currentM += 30;
+        if (currentM >= 60) {
+          currentH += 1;
+          currentM = 0;
+        }
+      }
+    } catch (e) {
+      return Array.from({ length: 22 }, (_, i) => {
+        const h = 11 + Math.floor(i / 2);
+        const m = i % 2 === 0 ? "00" : "30";
+        return `${h.toString().padStart(2, "0")}:${m}`;
+      }).filter((t) => parseInt(t.split(":")[0]) <= 21);
+    }
+    return slots.length > 0 ? slots : ["19:00", "19:30", "20:00", "20:30"];
+  }, [dayHours]);
+
+  useEffect(() => {
+    if (timeSlots.length > 0 && !timeSlots.includes(form.time)) {
+      setForm((prev) => ({ ...prev, time: timeSlots[0] }));
+    }
+  }, [timeSlots, form.time]);
 
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<string | null>(null);
@@ -205,6 +261,7 @@ function Reservations() {
               <Input
                 type="date"
                 min={new Date().toISOString().slice(0, 10)}
+                max={new Date(Date.now() + bookingWindowDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
               />
@@ -226,7 +283,7 @@ function Reservations() {
                 <Input
                   type="number"
                   min={1}
-                  max={20}
+                  max={maxPartySize}
                   value={form.party}
                   onChange={(e) => setForm({ ...form, party: parseInt(e.target.value) || 1 })}
                 />

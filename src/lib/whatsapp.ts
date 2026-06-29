@@ -1,4 +1,4 @@
-import { cafeInfo, inr } from "./format";
+import { inr } from "./format";
 
 type WAItem = { name: string; qty: number; price: number };
 export type WAOrder = {
@@ -77,13 +77,13 @@ export function buildOrderMessage(o: WAOrder) {
     .trim();
 }
 
-export function buildOrderWhatsAppUrl(o: WAOrder) {
-  return `https://wa.me/${cafeInfo.whatsapp}?text=${encodeURIComponent(buildOrderMessage(o))}`;
+export function buildOrderWhatsAppUrl(o: WAOrder, whatsappNumber?: string) {
+  return `https://wa.me/${whatsappNumber || "918019551015"}?text=${encodeURIComponent(buildOrderMessage(o))}`;
 }
 
 /** Open WhatsApp in a tab pre-opened synchronously on user click (avoids popup blockers). */
-export function openWhatsAppInTab(tab: Window | null, o: WAOrder): boolean {
-  const url = buildOrderWhatsAppUrl(o);
+export function openWhatsAppInTab(tab: Window | null, o: WAOrder, whatsappNumber?: string): boolean {
+  const url = buildOrderWhatsAppUrl(o, whatsappNumber);
   if (tab && !tab.closed) {
     tab.location.href = url;
     return true;
@@ -91,8 +91,8 @@ export function openWhatsAppInTab(tab: Window | null, o: WAOrder): boolean {
   return false;
 }
 
-export function openWhatsAppOrder(o: WAOrder) {
-  window.open(buildOrderWhatsAppUrl(o), "_blank");
+export function openWhatsAppOrder(o: WAOrder, whatsappNumber?: string) {
+  window.open(buildOrderWhatsAppUrl(o, whatsappNumber), "_blank");
 }
 
 export const WA_PENDING_KEY = (orderId: string) => `wa-pending-${orderId}`;

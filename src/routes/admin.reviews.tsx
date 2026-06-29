@@ -164,6 +164,20 @@ function AdminReviews() {
                     <Check className="size-4" /> Approve
                   </Button>
                 )}
+                {r.status === "approved" && (
+                  <Button
+                    size="sm"
+                    variant={r.featured ? "default" : "outline"}
+                    className={r.featured ? "bg-accent hover:bg-accent/90 text-accent-foreground" : ""}
+                    onClick={async () => {
+                      await useReviews.getState().toggleFeatured(r.id, !r.featured);
+                      toast.success(r.featured ? "Removed from homepage" : "Featured on homepage");
+                    }}
+                  >
+                    <Star className="size-4 mr-1.5" />
+                    {r.featured ? "Featured" : "Feature"}
+                  </Button>
+                )}
                 {r.status !== "rejected" && (
                   <Button
                     size="sm"

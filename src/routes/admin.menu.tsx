@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Plus, Pencil, Trash2, Search, Upload, ImagePlus, Loader2 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { categories, type MenuItem, type Category } from "@/lib/mock/menu";
 import { useMenu } from "@/lib/store/menu";
+import { useSettings } from "@/lib/store/settings";
 import { auth } from "@/lib/firebase";
 import { inr } from "@/lib/format";
 import { secureUploadImage } from "@/lib/api/cloudinary";
@@ -156,15 +157,51 @@ function ItemFormDialog({
       prepTime: 15,
       tags: [],
       available: true,
+      isDailySpecial: false,
+      isBestseller: false,
     },
   );
 
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Sync form state whenever the item prop changes (edit vs create)
+  useEffect(() => {
+    if (item) {
+      setF({ ...item, isDailySpecial: !!item.isDailySpecial, isBestseller: !!item.isBestseller });
+    } else {
+      setF({
+        id: "",
+        name: "",
+        description: "",
+        price: 100,
+        category: "Main Course",
+        image:
+          "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80",
+        publicId: "",
+        veg: true,
+        spice: 0,
+        prepTime: 15,
+        tags: [],
+        available: true,
+        isDailySpecial: false,
+        isBestseller: false,
+      });
+    }
+  }, [item]);
+
+  const settings = useSettings((s) => s.settings);
+  const fetchSettings = useSettings((s) => s.fetchSettings);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  const menuCategories = settings?.categories || categories;
+
   // Sync form state when item prop changes (switching between edit/create)
   const handleOpen = () => {
-    if (item) setF(item);
+    if (item) setF({ ...item, isDailySpecial: !!item.isDailySpecial, isBestseller: !!item.isBestseller });
     else
       setF({
         id: "",
@@ -180,6 +217,8 @@ function ItemFormDialog({
         prepTime: 15,
         tags: [],
         available: true,
+        isDailySpecial: false,
+        isBestseller: false,
       });
   };
 
@@ -372,13 +411,21 @@ function ItemFormDialog({
               </select>
             </div>
           </div>
-          <div className="flex gap-6">
-            <label className="flex items-center gap-2">
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <label className="flex items-center gap-2 text-sm font-medium">
               <Switch checked={f.veg} onCheckedChange={(v) => setF({ ...f, veg: v })} /> Vegetarian
             </label>
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-sm font-medium">
               <Switch checked={f.available} onCheckedChange={(v) => setF({ ...f, available: v })} />{" "}
               Available
+            </label>
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <Switch checked={!!f.isDailySpecial} onCheckedChange={(v) => setF({ ...f, isDailySpecial: v })} />{" "}
+              Daily Special
+            </label>
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <Switch checked={!!f.isBestseller} onCheckedChange={(v) => setF({ ...f, isBestseller: v })} />{" "}
+              Bestseller
             </label>
           </div>
           <div className="flex justify-end gap-2">

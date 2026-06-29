@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Search, X, SlidersHorizontal } from "lucide-react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { MenuCard } from "@/components/menu/MenuCard";
@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { categories, type Category } from "@/lib/mock/menu";
 import { useMenu } from "@/lib/store/menu";
 import { useCart } from "@/lib/store/cart";
+import { useSettings } from "@/lib/store/settings";
 import { inr } from "@/lib/format";
 import { toast } from "sonner";
 import { optimizeImage } from "@/lib/cloudinary-utils";
@@ -42,6 +43,17 @@ function MenuPage() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const menu = useMenu((s) => s.menu);
+  
+  const settings = useSettings((s) => s.settings);
+  const fetchSettings = useSettings((s) => s.fetchSettings);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  const menuCategories = useMemo(() => {
+    return settings?.categories || categories;
+  }, [settings?.categories]);
 
   const items = useMemo(() => {
     let arr = menu.filter((m) => {
@@ -127,8 +139,8 @@ function MenuPage() {
               <Chip active={cat === "All"} onClick={() => setCat("All")}>
                 All
               </Chip>
-              {categories.map((c) => (
-                <Chip key={c.name} active={cat === c.name} onClick={() => setCat(c.name)}>
+              {menuCategories.map((c) => (
+                <Chip key={c.name} active={cat === c.name} onClick={() => setCat(c.name as Category)}>
                   <span className="mr-1.5">{c.icon}</span>
                   {c.name}
                 </Chip>

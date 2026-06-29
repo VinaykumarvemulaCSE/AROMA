@@ -19,6 +19,18 @@ export type Settings = {
   freeDeliveryAbove: number;
   gst: number;
   hours: Record<DayKey, { open: string; close: string }>;
+  rating: number;
+  reviewCount: number;
+  mapsUrl: string;
+  tagline: string;
+  instagram: string;
+  facebook: string;
+  logoLetters: string;
+  locationName: string;
+  deliveryFee: number;
+  maxPartySize: number;
+  bookingWindowDays: number;
+  categories: { name: string; icon: string }[];
 };
 
 export const DEFAULTS: Settings = {
@@ -36,6 +48,26 @@ export const DEFAULTS: Settings = {
     (acc, d) => ({ ...acc, [d]: { open: "08:00", close: "23:00" } }),
     {} as Settings["hours"],
   ),
+  rating: cafeInfo.rating,
+  reviewCount: cafeInfo.reviewCount,
+  mapsUrl: cafeInfo.mapsUrl,
+  tagline: cafeInfo.tagline,
+  instagram: cafeInfo.instagram,
+  facebook: cafeInfo.facebook,
+  logoLetters: "A",
+  locationName: "Nalgonda",
+  deliveryFee: 40,
+  maxPartySize: 20,
+  bookingWindowDays: 30,
+  categories: [
+    { name: "Breakfast", icon: "🍳" },
+    { name: "Starters", icon: "🥗" },
+    { name: "Main Course", icon: "🍛" },
+    { name: "Breads & Rice", icon: "🍚" },
+    { name: "Desserts", icon: "🍰" },
+    { name: "Beverages", icon: "☕" },
+    { name: "Combos", icon: "🍱" },
+  ],
 };
 
 type SettingsState = {

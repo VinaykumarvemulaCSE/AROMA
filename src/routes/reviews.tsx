@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Star } from "lucide-react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ratingBreakdown } from "@/lib/mock/reviews";
 import { useReviews } from "@/lib/store/reviews";
-import { cafeInfo } from "@/lib/format";
+import { useSettings } from "@/lib/store/settings";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/reviews")({
@@ -23,6 +23,8 @@ export const Route = createFileRoute("/reviews")({
 });
 
 function Reviews() {
+  const settings = useSettings((s) => s.settings);
+  const fetchSettings = useSettings((s) => s.fetchSettings);
   const [open, setOpen] = useState(false);
   const [rating, setRating] = useState(5);
   const [name, setName] = useState("");
@@ -31,6 +33,10 @@ function Reviews() {
   const allReviews = useReviews((s) => s.reviews);
   const addReview = useReviews((s) => s.addReview);
   const reviews = allReviews.filter((r) => r.status === "approved");
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,16 +63,16 @@ function Reviews() {
 
         <div className="mt-8 grid md:grid-cols-3 gap-6">
           <div className="bg-card border border-border rounded-2xl p-6 text-center">
-            <p className="text-6xl font-display font-bold">{cafeInfo.rating}</p>
+            <p className="text-6xl font-display font-bold">{settings?.rating || 4.7}</p>
             <div className="flex items-center justify-center gap-0.5 mt-2">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Star
                   key={i}
-                  className={`size-4 ${i < Math.floor(cafeInfo.rating) ? "fill-gold text-gold" : "text-muted-foreground"}`}
+                  className={`size-4 ${i < Math.floor(settings?.rating || 4.7) ? "fill-gold text-gold" : "text-muted-foreground"}`}
                 />
               ))}
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">{cafeInfo.reviewCount} reviews</p>
+            <p className="mt-1 text-sm text-muted-foreground">{settings?.reviewCount || 1284} reviews</p>
           </div>
           <div className="bg-card border border-border rounded-2xl p-6 md:col-span-2">
             {[5, 4, 3, 2, 1].map((s) => (

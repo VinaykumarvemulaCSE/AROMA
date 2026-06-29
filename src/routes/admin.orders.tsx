@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, MessageCircle, CheckCircle2 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { inr, cafeInfo } from "@/lib/format";
+import { inr } from "@/lib/format";
+import { useSettings } from "@/lib/store/settings";
 import { useOrders, type Order, type OrderStatus } from "@/lib/store/orders";
 import { toast } from "sonner";
 
@@ -37,10 +38,16 @@ const statusColor: Record<OrderStatus, string> = {
 function AdminOrders() {
   const orders = useOrders((s) => s.orders);
   const updateStatus = useOrders((s) => s.updateStatus);
+  const settings = useSettings((s) => s.settings);
+  const fetchSettings = useSettings((s) => s.fetchSettings);
 
   const [filter, setFilter] = useState<"All" | OrderStatus>("All");
   const [q, setQ] = useState("");
   const [view, setView] = useState<Order | null>(null);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   const list = orders.filter((o) => {
     const matchFilter = filter === "All" || o.status === filter;
@@ -79,7 +86,7 @@ function AdminOrders() {
     ].join("\n");
 
     const phone = o.contact.phone.replace(/\D/g, "");
-    const waUrl = `https://wa.me/${phone || cafeInfo.whatsapp}?text=${encodeURIComponent(msg)}`;
+    const waUrl = `https://wa.me/${phone || settings?.whatsapp || ""}?text=${encodeURIComponent(msg)}`;
     window.open(waUrl, "_blank");
     toast.success(`Order #${o.id} accepted & WhatsApp opened.`);
   };

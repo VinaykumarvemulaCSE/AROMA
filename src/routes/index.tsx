@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Phone,
   MessageCircle,
@@ -15,10 +15,11 @@ import { SiteLayout } from "@/components/layout/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MenuCard } from "@/components/menu/MenuCard";
-import { todaysSpecial, bestsellers } from "@/lib/mock/menu";
 import { useMenu } from "@/lib/store/menu";
-import { reviews } from "@/lib/mock/reviews";
-import { cafeInfo } from "@/lib/format";
+import { useSettings } from "@/lib/store/settings";
+import { useReviews } from "@/lib/store/reviews";
+import { reviews as mockReviews } from "@/lib/mock/reviews";
+import { useGallery } from "@/lib/store/gallery";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -87,15 +88,42 @@ const heroSlides = [
 
 function Home() {
   const menu = useMenu((s) => s.menu);
+  const settings = useSettings((s) => s.settings);
+  const fetchSettings = useSettings((s) => s.fetchSettings);
   const [slide, setSlide] = useState(0);
   const [q, setQ] = useState("");
+  const { images, fetchImages, loading } = useGallery();
+  
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  // Fetch gallery images on mount
+  useEffect(() => {
+    fetchImages();
+  }, [fetchImages]);
+
   useEffect(() => {
     const t = setInterval(() => setSlide((s) => (s + 1) % heroSlides.length), 5000);
     return () => clearInterval(t);
   }, []);
 
-  const specials = menu.filter((m) => todaysSpecial.includes(m.id));
-  const best = menu.filter((m) => bestsellers.includes(m.id));
+  const liveReviews = useReviews((s) => s.reviews);
+
+  // Show items flagged in Firebase; empty if none have been flagged yet.
+  const specials = useMemo(() => menu.filter((m) => !!m.isDailySpecial), [menu]);
+  const best = useMemo(() => menu.filter((m) => !!m.isBestseller), [menu]);
+
+  const testimonials = useMemo(() => {
+    let list = liveReviews.filter((r) => r.status === "approved" && r.featured);
+    if (list.length === 0) {
+      list = liveReviews.filter((r) => r.status === "approved");
+    }
+    if (list.length === 0) {
+      return mockReviews.slice(0, 3);
+    }
+    return list.slice(0, 3);
+  }, [liveReviews]);
 
   return (
     <SiteLayout>
@@ -118,8 +146,8 @@ function Home() {
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-end pb-16 text-white">
           <div className="flex items-center gap-2 text-sm">
             <span className="flex items-center gap-1 bg-white/15 backdrop-blur px-3 py-1 rounded-full">
-              <Star className="size-3.5 fill-gold text-gold" /> {cafeInfo.rating} ·{" "}
-              {cafeInfo.reviewCount} reviews
+              <Star className="size-3.5 fill-gold text-gold" /> {settings?.rating || 4.7} ·{" "}
+              {settings?.reviewCount || 1284} reviews
             </span>
             <span className="hidden sm:inline-flex items-center gap-1 bg-white/15 backdrop-blur px-3 py-1 rounded-full">
               <MapPin className="size-3.5" /> Nalgonda
@@ -150,7 +178,7 @@ function Home() {
                 Reserve Table
               </Button>
             </Link>
-            <a href={`tel:${cafeInfo.phone}`} className="hidden sm:inline-flex">
+            <a href={`tel:${settings?.phone || ""}`} className="hidden sm:inline-flex">
               <Button
                 size="lg"
                 variant="ghost"
@@ -159,7 +187,7 @@ function Home() {
                 <Phone className="size-4 mr-2" /> Call
               </Button>
             </a>
-            <a href={`https://wa.me/${cafeInfo.whatsapp}`} className="hidden sm:inline-flex">
+            <a href={`https://wa.me/${settings?.whatsapp || ""}`} className="hidden sm:inline-flex">
               <Button
                 size="lg"
                 variant="ghost"
@@ -210,7 +238,7 @@ function Home() {
             {
               icon: Star,
               label: "Rating",
-              value: `${cafeInfo.rating} / 5 · ${cafeInfo.reviewCount}`,
+              value: `${settings?.rating || 4.7} / 5 · ${settings?.reviewCount || 1284}`,
             },
             { icon: Truck, label: "Home Delivery", value: "30-40 min · ₹40" },
           ].map((c) => (
@@ -294,7 +322,7 @@ function Home() {
         link={{ to: "/reviews", label: "Read all reviews" }}
       >
         <div className="grid md:grid-cols-3 gap-5">
-          {reviews.slice(0, 3).map((r) => (
+          {testimonials.map((r) => (
             <figure key={r.id} className="bg-card border border-border rounded-2xl p-6">
               <Quote className="size-6 text-accent" />
               <blockquote className="mt-3 text-sm leading-relaxed">"{r.body}"</blockquote>
@@ -319,29 +347,28 @@ function Home() {
         </div>
       </Section>
 
-      {/* GALLERY PREVIEW */}
-      <Section
-        title="A glimpse inside"
-        sub="The space, the plates, the people"
-        link={{ to: "/gallery", label: "View gallery" }}
-      >
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            "photo-1559339352-11d035aa65de",
-            "photo-1414235077428-338989a2e8c0",
-            "photo-1517248135467-4c7edcad34c4",
-            "photo-1554118811-1e0d58224f24",
-          ].map((q, i) => (
-            <Link to="/gallery" key={i} className="block aspect-square rounded-2xl overflow-hidden">
-              <img
-                src={`https://images.unsplash.com/${q}?auto=format&fit=crop&w=600&q=80`}
-                alt=""
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-              />
-            </Link>
-          ))}
-        </div>
-      </Section>
+        {/* GALLERY PREVIEW */}
+        <Section
+          title="A glimpse inside"
+          sub="The space, the plates, the people"
+          link={{ to: "/gallery", label: "View gallery" }}
+        >
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {loading ? (
+              <p>Loading gallery...</p>
+            ) : (
+              images.map((img) => (
+                <Link to="/gallery" key={img.id} className="block aspect-square rounded-2xl overflow-hidden">
+                  <img
+                    src={img.url}
+                    alt={img.caption || "Gallery image"}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                  />
+                </Link>
+              ))
+            )}
+          </div>
+        </Section>
 
       <div className="h-16" />
     </SiteLayout>

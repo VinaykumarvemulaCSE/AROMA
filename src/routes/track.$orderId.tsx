@@ -15,7 +15,8 @@ import { SiteLayout } from "@/components/layout/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cafeInfo, inr } from "@/lib/format";
+import { inr } from "@/lib/format";
+import { useSettings } from "@/lib/store/settings";
 import { downloadBill } from "@/lib/bill";
 import { useAuth } from "@/lib/store/auth";
 import { useOrders, type Order, type OrderStatus } from "@/lib/store/orders";
@@ -75,6 +76,8 @@ function TrackPage() {
   const initialized = useAuth((s) => s.initialized);
   const orders = useOrders((s) => s.orders);
   const listenToOrder = useOrders((s) => s.listenToOrder);
+  const settings = useSettings((s) => s.settings);
+  const fetchSettings = useSettings((s) => s.fetchSettings);
   const [trackedOrder, setTrackedOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsPhone, setNeedsPhone] = useState(false);
@@ -83,6 +86,10 @@ function TrackPage() {
   const [pendingWaUrl, setPendingWaUrl] = useState<string | null>(() =>
     typeof sessionStorage !== "undefined" ? sessionStorage.getItem(WA_PENDING_KEY(orderId)) : null,
   );
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   const fetchGuestOrder = useCallback(
     async (phone: string) => {
@@ -186,8 +193,8 @@ function TrackPage() {
       contact: order.contact,
       createdAt: order.createdAt,
       status: order.status,
-    });
-  }, [pendingWaUrl, order]);
+    }, settings?.whatsapp);
+  }, [pendingWaUrl, order, settings?.whatsapp]);
 
   const showWhatsAppFallback = Boolean(whatsAppUrl && (waSearch === 1 || pendingWaUrl));
 
@@ -346,12 +353,12 @@ function TrackPage() {
         )}
 
         <div className="mt-6 grid sm:grid-cols-2 gap-3">
-          <a href={`tel:${cafeInfo.phone}`}>
+          <a href={`tel:${settings?.phone || ""}`}>
             <Button variant="outline" className="w-full">
               <Phone className="size-4 mr-2" /> Call restaurant
             </Button>
           </a>
-          <a href={`https://wa.me/${cafeInfo.whatsapp}`} target="_blank" rel="noreferrer">
+          <a href={`https://wa.me/${settings?.whatsapp || ""}`} target="_blank" rel="noreferrer">
             <Button className="w-full">
               <MessageCircle className="size-4 mr-2" /> Chat on WhatsApp
             </Button>

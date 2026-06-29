@@ -23,7 +23,7 @@ type MenuState = {
   listenToMenu: () => () => void;
 };
 
-export const useMenu = create<MenuState>()((set, get) => ({
+export const useMenu = create<MenuState>()((set) => ({
   menu: [],
 
   addMenuItem: async (item) => {
@@ -36,20 +36,6 @@ export const useMenu = create<MenuState>()((set, get) => ({
   },
 
   removeMenuItem: async (id) => {
-    try {
-      const item = get().menu.find((i) => i.id === id);
-      if (item?.publicId) {
-        const { auth } = await import("../firebase");
-        const idToken = await auth.currentUser?.getIdToken();
-        if (idToken) {
-          const { secureDeleteImage } = await import("../api/cloudinary");
-          await secureDeleteImage({ data: { idToken, publicId: item.publicId } });
-        }
-      }
-    } catch (e) {
-      console.error("Failed to delete image from cloudinary", e);
-    }
-    
     await deleteDoc(doc(db, "menu_items", id));
   },
 
