@@ -304,10 +304,10 @@ function CheckoutPage() {
         params: { orderId: res.orderId },
         search: opened ? {} : { wa: 1 },
       });
-    } catch (err) {
+    } catch (err: any) {
       waTab?.close();
       console.error(err);
-      toast.error("Failed to place order. Please try again.");
+      toast.error(err.message || "Failed to place order. Please try again.");
       setIsSubmitting(false);
     }
   };
