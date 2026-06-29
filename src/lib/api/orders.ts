@@ -11,6 +11,7 @@ function normalizePhone(phone: string) {
 }
 
 export const getOrderForTracking = createServerFn({ method: "POST" })
+  .validator((data: any) => data)
   .handler(async ({ data }: { data: any }) => {
     try {
       const parsedData = z.object({
@@ -56,6 +57,7 @@ export const getOrderForTracking = createServerFn({ method: "POST" })
   });
 
 export const createOrder = createServerFn({ method: "POST" })
+  .validator((data: any) => data)
   .handler(async ({ data }: { data: any }) => {
     try {
       const parsedData = orderSchema.parse(data);
