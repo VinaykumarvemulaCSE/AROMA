@@ -1,3 +1,4 @@
+import "../firebase-admin"; // Initialize app first
 import { getAuth } from "firebase-admin/auth";
 
 export async function verifyIdToken(idToken: string) {

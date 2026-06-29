@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import "../firebase-admin"; // Initialize app first
 import { getAuth } from "firebase-admin/auth";
 import { sendVerificationEmailInternal } from "../email";
 
