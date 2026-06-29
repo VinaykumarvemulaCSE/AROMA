@@ -1,1 +1,0 @@
-import{W as e,q as t}from"./useStore-BmnU4h-f.js";import{n}from"./dist-BoGkX26T.js";var r=t(e(),1),i=r.useId||(()=>void 0),a=0;function o(e){let[t,o]=r.useState(i());return n(()=>{e||o(e=>e??String(a++))},[e]),e||(t?`radix-${t}`:``)}export{o as t};

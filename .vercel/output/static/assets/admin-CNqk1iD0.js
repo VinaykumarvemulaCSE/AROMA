@@ -1,1 +1,0 @@
-import{o as e}from"./useStore-BmnU4h-f.js";import{g as t}from"./index-CodwZ153.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as component};
