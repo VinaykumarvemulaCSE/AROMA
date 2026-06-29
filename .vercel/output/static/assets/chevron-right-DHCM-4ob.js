@@ -1,0 +1,1 @@
+import{s as e}from"./sonner-DTl-7ZV-.js";var t=e(`chevron-right`,[[`path`,{d:`m9 18 6-6-6-6`,key:`mthhwq`}]]);export{t};
