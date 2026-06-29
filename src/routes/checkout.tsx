@@ -250,9 +250,9 @@ function CheckoutPage() {
         },
       });
 
-      if (!res.orderId) {
+      if (!res.success || !res.orderId) {
         waTab?.close();
-        toast.error("Failed to create order. Please try again.");
+        toast.error(res.error || "Failed to create order. Please try again.");
         setIsSubmitting(false);
         return;
       }
