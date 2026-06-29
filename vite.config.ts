@@ -23,6 +23,9 @@ export default defineConfig({
       "@tanstack/query-core",
     ],
   },
+  ssr: {
+    external: ["firebase-admin", "nodemailer"],
+  },
   plugins: [
     tailwindcss(),
     tsconfigPaths({ projects: ["./tsconfig.json"] }),
