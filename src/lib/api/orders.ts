@@ -11,17 +11,16 @@ function normalizePhone(phone: string) {
 }
 
 export const getOrderForTracking = createServerFn({ method: "POST" })
-  .validator(
-    z.object({
-      orderId: z.string().min(1),
-      phone: z.string().min(10),
-    }),
-  )
-  .handler(async ({ data }) => {
+  .handler(async ({ data }: { data: any }) => {
     try {
-      await rateLimit(`track_${data.orderId}`, 30, 10 * 60 * 1000);
+      const parsedData = z.object({
+        orderId: z.string().min(1),
+        phone: z.string().min(10),
+      }).parse(data);
 
-      const snap = await adminDb.collection("orders").doc(data.orderId).get();
+      await rateLimit(`track_${parsedData.orderId}`, 30, 10 * 60 * 1000);
+
+      const snap = await adminDb.collection("orders").doc(parsedData.orderId).get();
       if (!snap.exists) {
         throw new Error("Order not found.");
       }
@@ -57,12 +56,13 @@ export const getOrderForTracking = createServerFn({ method: "POST" })
   });
 
 export const createOrder = createServerFn({ method: "POST" })
-  .validator((data: unknown) => orderSchema.parse(data))
-  .handler(async ({ data }) => {
+  .handler(async ({ data }: { data: any }) => {
     try {
-      await rateLimit(`order_${data.contact.phone}`, 5, 10 * 60 * 1000);
+      const parsedData = orderSchema.parse(data);
 
-      const userId = await resolveUserIdFromToken(data.idToken);
+      await rateLimit(`order_${parsedData.contact.phone}`, 5, 10 * 60 * 1000);
+
+      const userId = await resolveUserIdFromToken(parsedData.idToken);
 
       const menuItemsSnapshot = await adminDb.collection("menu_items").get();
       const menuItemsMap = new Map<string, Record<string, unknown>>();
@@ -73,7 +73,7 @@ export const createOrder = createServerFn({ method: "POST" })
       let subtotal = 0;
       const validatedItems = [];
 
-      for (const item of data.items) {
+      for (const item of parsedData.items) {
         const dbItem = menuItemsMap.get(item.id);
         if (!dbItem || !dbItem.available) {
           throw new Error(`Item ${item.id} is unavailable or does not exist.`);
@@ -90,7 +90,7 @@ export const createOrder = createServerFn({ method: "POST" })
 
       let discount = 0;
       let appliedCoupon = null;
-      const couponCode = data.couponCode?.toUpperCase().trim();
+      const couponCode = parsedData.couponCode?.toUpperCase().trim();
       if (couponCode) {
         const couponDoc = await adminDb.collection("coupons").doc(couponCode).get();
         if (couponDoc.exists) {
@@ -127,8 +127,8 @@ export const createOrder = createServerFn({ method: "POST" })
         discount,
         couponCode: appliedCoupon ? couponCode : null,
         total,
-        addr: data.addr,
-        contact: data.contact,
+        addr: parsedData.addr,
+        contact: parsedData.contact,
         status: "Pending",
         createdAt: Date.now(),
         userId,
@@ -154,10 +154,10 @@ export const createOrder = createServerFn({ method: "POST" })
 
       await sendOrderEmailInternal({
         orderId,
-        customerName: data.contact.name,
-        customerEmail: data.contact.email || "",
-        customerPhone: data.contact.phone,
-        address: [data.addr.line1, data.addr.line2, data.addr.landmark, data.addr.city, data.addr.pin]
+        customerName: parsedData.contact.name,
+        customerEmail: parsedData.contact.email || "",
+        customerPhone: parsedData.contact.phone,
+        address: [parsedData.addr.line1, parsedData.addr.line2, parsedData.addr.landmark, parsedData.addr.city, parsedData.addr.pin]
           .filter(Boolean)
           .join(", "),
         items: validatedItems,
@@ -165,7 +165,7 @@ export const createOrder = createServerFn({ method: "POST" })
         discount,
         deliveryFee: delivery,
         total,
-        cutlery: data.contact.cutlery,
+        cutlery: parsedData.contact.cutlery,
       }).catch((err) => console.error("Email send error:", err));
 
       return {
