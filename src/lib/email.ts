@@ -14,6 +14,14 @@ function escapeHtml(unsafe: string) {
     .replace(/'/g, "&#039;");
 }
 
+function getAppUrl() {
+  const appUrl = process.env.APP_URL 
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "")
+    || process.env.VITE_APP_URL 
+    || "https://aroma.in";
+  return appUrl.endsWith("/") ? appUrl.slice(0, -1) : appUrl;
+}
+
 async function getTransporter() {
   const host = process.env.SMTP_HOST;
   const port = parseInt(process.env.SMTP_PORT || "587");
@@ -137,7 +145,7 @@ export async function sendOrderEmailInternal(data: {
         </table>
 
         <div style="text-align: center; padding: 10px 0 20px 0;">
-          <a href="${process.env.VITE_APP_URL || "https://aroma.in"}/track/${data.orderId}" style="display: inline-block; background-color: #854d0e; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">Track Your Order</a>
+          <a href="${getAppUrl()}/track/${data.orderId}" style="display: inline-block; background-color: #854d0e; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">Track Your Order</a>
         </div>
 
         <div style="border-top: 1px solid #edf2f7; padding-top: 20px; text-align: center; font-size: 12px; color: #a0aec0;">
@@ -177,7 +185,7 @@ export async function sendOrderEmailInternal(data: {
               <p style="margin: 4px 0;"><strong>Total:</strong> ${inrFormat(data.total)}</p>
             </div>
             <div style="text-align: center; padding: 10px 0 10px 0;">
-              <a href="${process.env.VITE_APP_URL || "https://aroma.in"}/admin/orders" style="display: inline-block; background-color: #1a202c; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;">Open Admin Dashboard</a>
+              <a href="${getAppUrl()}/admin/orders" style="display: inline-block; background-color: #1a202c; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;">Open Admin Dashboard</a>
             </div>
           </div>
         `,
@@ -283,7 +291,7 @@ export async function sendReservationEmailInternal(data: {
             ${locationLink}
           </div>
           <div style="text-align: center; padding: 10px 0 10px 0;">
-            <a href="${process.env.VITE_APP_URL || "https://aroma.in"}/admin/reservations" style="display: inline-block; background-color: #1a202c; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;">Open Reservations</a>
+            <a href="${getAppUrl()}/admin/reservations" style="display: inline-block; background-color: #1a202c; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;">Open Reservations</a>
           </div>
         </div>
       `,
@@ -383,7 +391,7 @@ export async function sendOrderStatusEmailInternal(data: {
       </div>
 
       <div style="text-align: center; padding: 20px 0;">
-        <a href="${process.env.VITE_APP_URL || "https://aroma.in"}/track/${data.orderId}" style="display: inline-block; background-color: #854d0e; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">Track Your Order</a>
+        <a href="${getAppUrl()}/track/${data.orderId}" style="display: inline-block; background-color: #854d0e; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">Track Your Order</a>
       </div>
 
       <div style="border-top: 1px solid #edf2f7; padding-top: 20px; text-align: center; font-size: 12px; color: #a0aec0;">
@@ -516,7 +524,7 @@ export async function sendReservationStatusEmailInternal(data: {
       </div>
 
       <div style="text-align: center; padding: 20px 0;">
-        <a href="${process.env.VITE_APP_URL || "https://aroma.in"}/reservations" style="display: inline-block; background-color: #854d0e; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">View Reservations</a>
+        <a href="${getAppUrl()}/reservations" style="display: inline-block; background-color: #854d0e; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">View Reservations</a>
       </div>
 
       <div style="border-top: 1px solid #edf2f7; padding-top: 20px; text-align: center; font-size: 12px; color: #a0aec0;">
@@ -585,7 +593,7 @@ export async function sendOrderCancellationEmailInternal(data: {
       </div>
 
       <div style="text-align: center; padding: 20px 0;">
-        <a href="${process.env.VITE_APP_URL || "https://aroma.in"}/menu" style="display: inline-block; background-color: #854d0e; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">Order Again</a>
+        <a href="${getAppUrl()}/menu" style="display: inline-block; background-color: #854d0e; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">Order Again</a>
       </div>
 
       <div style="border-top: 1px solid #edf2f7; padding-top: 20px; text-align: center; font-size: 12px; color: #a0aec0;">
@@ -642,7 +650,7 @@ export async function sendReviewApprovalEmailInternal(data: {
       </div>
 
       <div style="text-align: center; padding: 20px 0;">
-        <a href="${process.env.VITE_APP_URL || "https://aroma.in"}/reviews" style="display: inline-block; background-color: #854d0e; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">View All Reviews</a>
+        <a href="${getAppUrl()}/reviews" style="display: inline-block; background-color: #854d0e; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">View All Reviews</a>
       </div>
 
       <div style="border-top: 1px solid #edf2f7; padding-top: 20px; text-align: center; font-size: 12px; color: #a0aec0;">

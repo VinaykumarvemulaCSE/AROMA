@@ -23,7 +23,7 @@ export default defineConfig({
     ],
   },
   ssr: {
-    external: ["firebase-admin", "nodemailer"],
+    external: ["firebase-admin", "nodemailer", "cloudinary", "dompurify"],
   },
   plugins: [
     tailwindcss(),
