@@ -4,15 +4,19 @@ import { getFirestore } from "firebase-admin/firestore";
 if (getApps().length === 0) {
   try {
     if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-      // Vercel often escapes newlines as literal '\\n' which breaks JSON.parse.
-      // This cleans the string before parsing.
-      const cleanedJson = process.env.FIREBASE_SERVICE_ACCOUNT
-        .replace(/\\n/g, '\\n') // Ensure newlines are properly escaped for JSON
-        .replace(/\n/g, '\\n'); // Convert actual newlines to escaped newlines
-
-      const serviceAccount = JSON.parse(cleanedJson);
+      let cleaned = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
+      // If the env var is wrapped in outer quotes (often happens in Vercel config), unwrap it first
+      if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+        try {
+          cleaned = JSON.parse(cleaned);
+        } catch {
+          // Fallback to original if parsing fails
+        }
+      }
       
-      // If the private key still has literal '\\n', replace them with actual newlines
+      const serviceAccount = JSON.parse(cleaned);
+      
+      // Replace literal '\\n' with actual newlines in the private key if present
       if (serviceAccount.private_key) {
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
       }
