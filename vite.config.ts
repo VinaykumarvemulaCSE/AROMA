@@ -22,6 +22,9 @@ export default defineConfig({
       "@tanstack/query-core",
     ],
   },
+  build: {
+    chunkSizeWarningLimit: 1000,
+  },
   ssr: {
     external: ["firebase-admin", "nodemailer", "cloudinary", "dompurify"],
   },

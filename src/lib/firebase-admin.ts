@@ -1,3 +1,4 @@
+
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
@@ -13,9 +14,9 @@ if (getApps().length === 0) {
           // Fallback to original if parsing fails
         }
       }
-      
+
       const serviceAccount = JSON.parse(cleaned);
-      
+
       // Replace literal '\\n' with actual newlines in the private key if present
       if (serviceAccount.private_key) {
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
