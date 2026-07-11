@@ -3,6 +3,8 @@
 // Works in both browser (SSR) and server (serverless functions) environments.
 // DOMPurify is only loaded lazily on the client for full HTML sanitization.
 
+import DOMPurify from "dompurify";
+
 /**
  * Strips all HTML tags from a string (isomorphic — works on server + client).
  * Sufficient for plain-text contexts where we just need to remove tags.
@@ -18,10 +20,7 @@ function stripHtmlTags(text: string): string {
  */
 export function sanitizeHtml(html: string): string {
   if (typeof window !== "undefined") {
-    // Lazy-load DOMPurify only on the client
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const DOMPurify = require("dompurify") as typeof import("dompurify").default;
       return DOMPurify.sanitize(html, {
         ALLOWED_TAGS: ["b", "i", "em", "strong", "a", "p", "br", "ul", "ol", "li"],
         ALLOWED_ATTR: ["href", "target", "rel"],
