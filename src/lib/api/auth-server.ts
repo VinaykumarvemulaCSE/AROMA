@@ -1,8 +1,8 @@
 import "../firebase-admin"; // Initialize app first
-import { getAuth } from "firebase-admin/auth";
+import admin from "firebase-admin";
 
 export async function verifyIdToken(idToken: string) {
-  return getAuth().verifyIdToken(idToken);
+  return admin.auth().verifyIdToken(idToken);
 }
 
 export async function verifyAdmin(idToken: string) {
@@ -22,3 +22,4 @@ export async function resolveUserIdFromToken(idToken?: string) {
     return null;
   }
 }
+

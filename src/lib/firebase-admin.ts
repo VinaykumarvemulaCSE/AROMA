@@ -1,8 +1,7 @@
 
-import { initializeApp, getApps, cert } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import admin from "firebase-admin";
 
-if (getApps().length === 0) {
+if (admin.apps.length === 0) {
   try {
     if (process.env.FIREBASE_SERVICE_ACCOUNT) {
       let cleaned = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
@@ -22,9 +21,9 @@ if (getApps().length === 0) {
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
       }
 
-      initializeApp({ credential: cert(serviceAccount) });
+      admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
     } else {
-      initializeApp();
+      admin.initializeApp();
     }
   } catch (error) {
     console.error("FATAL: Firebase Admin SDK Initialization Error. Check your FIREBASE_SERVICE_ACCOUNT env var on Vercel:", error);
@@ -36,10 +35,10 @@ if (getApps().length === 0) {
 // This prevents a 500 error during module loading and instead throws when the db is actually used.
 export const adminDb = new Proxy({} as FirebaseFirestore.Firestore, {
   get(target, prop) {
-    if (getApps().length === 0) {
+    if (admin.apps.length === 0) {
       throw new Error("Firebase Admin is not initialized. Check FIREBASE_SERVICE_ACCOUNT in Vercel.");
     }
-    const db = getFirestore();
+    const db = admin.firestore();
     return (db as any)[prop];
   }
 });
