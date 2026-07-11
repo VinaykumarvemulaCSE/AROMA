@@ -1,10 +1,11 @@
-import { adminDb } from "../firebase-admin";
+import { getDb } from "../firebase-admin";
 
 /**
  * Firestore-backed rate limiter for server functions.
  * Works across serverless instances in the same Firebase project.
  */
 export async function rateLimit(key: string, maxRequests: number, windowMs: number) {
+  const adminDb = await getDb();
   const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 120);
   const docRef = adminDb.collection("_ratelimit").doc(safeKey);
   const now = Date.now();

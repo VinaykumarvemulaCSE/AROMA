@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { adminDb } from "../firebase-admin";
+import { getDb } from "../firebase-admin";
 import { reservationSchema } from "../validation/schemas";
 import { sendReservationEmailInternal } from "../email";
 import { rateLimit } from "./rate-limit";
@@ -14,6 +14,7 @@ export const checkAvailability = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    const adminDb = await getDb();
     const datetime = `${data.date}T${data.timeSlot}`;
     const tablesSnap = await adminDb.collection("tables").get();
 
@@ -44,6 +45,7 @@ export const checkAvailability = createServerFn({ method: "POST" })
 export const createReservation = createServerFn({ method: "POST" })
   .validator((data: unknown) => reservationSchema.parse(data))
   .handler(async ({ data }) => {
+    const adminDb = await getDb();
     await rateLimit(`res_${data.customer.phone}`, 5, 10 * 60 * 1000);
 
     const datetime = `${data.reservation.date}T${data.reservation.timeSlot}`;

@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { adminDb } from "../firebase-admin";
+import { getDb } from "../firebase-admin";
 import { sendOrderEmailInternal } from "../email";
 import { orderSchema } from "../validation/schemas";
 import { rateLimit } from "./rate-limit";
@@ -14,6 +14,7 @@ export const getOrderForTracking = createServerFn({ method: "POST" })
   .validator((data: any) => data)
   .handler(async ({ data }: { data: any }) => {
     try {
+      const adminDb = await getDb();
       const parsedData = z.object({
         orderId: z.string().min(1),
         phone: z.string().min(10),
@@ -60,6 +61,7 @@ export const createOrder = createServerFn({ method: "POST" })
   .validator((data: any) => data)
   .handler(async ({ data }: { data: any }) => {
     try {
+      const adminDb = await getDb();
       const parsedData = orderSchema.parse(data);
 
       await rateLimit(`order_${parsedData.contact.phone}`, 5, 10 * 60 * 1000);

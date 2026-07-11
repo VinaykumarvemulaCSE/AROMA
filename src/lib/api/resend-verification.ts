@@ -1,13 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import "../firebase-admin"; // Initialize app first
-import admin from "firebase-admin";
+import { getAdminAuth } from "../firebase-admin";
 import { sendVerificationEmailInternal } from "../email";
 
 export const resendVerificationEmail = createServerFn({ method: "POST" })
   .validator(z.object({ email: z.string().email() }))
   .handler(async ({ data }) => {
-    const auth = admin.auth();
+    const auth = await getAdminAuth();
     
     // Resolve the app URL: prefer explicit APP_URL env var,
     // fall back to Vercel's auto-injected VERCEL_URL, then localhost.

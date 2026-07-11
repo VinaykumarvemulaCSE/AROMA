@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { adminDb } from "../firebase-admin";
+import { getDb } from "../firebase-admin";
 import { rateLimit } from "./rate-limit";
 
 export const validateCouponCode = createServerFn({ method: "POST" })
@@ -12,6 +12,7 @@ export const validateCouponCode = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     try {
+      const adminDb = await getDb();
       await rateLimit(`coupon_${data.code.toUpperCase()}`, 20, 60 * 1000);
 
       const code = data.code.toUpperCase().trim();

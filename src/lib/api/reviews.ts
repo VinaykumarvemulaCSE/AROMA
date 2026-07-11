@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { adminDb } from "../firebase-admin";
+import { getDb } from "../firebase-admin";
 import { rateLimit } from "./rate-limit";
 import { sanitizeInput } from "../sanitize";
 
@@ -15,6 +15,7 @@ const reviewInputSchema = z.object({
 export const submitReview = createServerFn({ method: "POST" })
   .validator(reviewInputSchema)
   .handler(async ({ data }) => {
+    const adminDb = await getDb();
     await rateLimit(`review_${data.name.slice(0, 20)}`, 3, 60 * 60 * 1000);
 
     const doc = {
