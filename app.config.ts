@@ -8,5 +8,10 @@ export default defineConfig({
         target: "esnext",
       },
     },
+    vercel: {
+      functions: {
+        runtime: "nodejs22.x",
+      },
+    },
   },
 });
