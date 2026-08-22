@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import {
   Check,
@@ -63,7 +63,7 @@ const stages: Stage[] = [
 
 const statusIndex = (s: OrderStatus) => stages.findIndex((st) => st.key === s);
 
-export default function TrackPage() {
+function TrackPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const orderId = params.orderId as string;
@@ -425,5 +425,21 @@ export default function TrackPage() {
         </div>
       </section>
     </SiteLayout>
+  );
+}
+
+export default function TrackPage() {
+  return (
+    <Suspense
+      fallback={
+        <SiteLayout>
+          <div className="mx-auto max-w-md text-center py-32 px-4">
+            <p className="text-muted-foreground">Loading order…</p>
+          </div>
+        </SiteLayout>
+      }
+    >
+      <TrackPageContent />
+    </Suspense>
   );
 }
