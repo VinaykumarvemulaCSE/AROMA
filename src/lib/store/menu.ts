@@ -43,7 +43,7 @@ export const useMenu = create<MenuState>()((set, get) => ({
         const idToken = await auth.currentUser?.getIdToken();
         if (idToken) {
           const { secureDeleteImage } = await import("../api/cloudinary");
-          await secureDeleteImage({ data: { idToken, publicId: item.publicId } });
+          await secureDeleteImage({ idToken, publicId: item.publicId });
         }
       }
     } catch (e) {
