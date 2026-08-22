@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useSettings } from "@/lib/store/settings";
 import { sendContactEmail } from "@/lib/api/contact-email";
 import { toast } from "sonner";
+import { formatWhatsAppNumber } from "@/lib/whatsapp";
 
 export default function Contact() {
   const settings = useSettings((s) => s.settings);
@@ -79,7 +80,7 @@ export default function Contact() {
               icon={<MessageCircle className="size-5" />}
               label="WhatsApp"
               value="Chat with us"
-              href={`https://wa.me/${settings?.whatsapp || ""}`}
+              href={`https://wa.me/${formatWhatsAppNumber(settings?.whatsapp || "")}`}
             />
             <Card
               icon={<Mail className="size-5" />}

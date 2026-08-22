@@ -3,6 +3,7 @@ import { Instagram, Facebook, Phone, Mail, MapPin, MessageCircle } from "lucide-
 import { useEffect } from "react";
 import { useSettings } from "@/lib/store/settings";
 import { getCafeInfo } from "@/lib/format";
+import { formatWhatsAppNumber } from "@/lib/whatsapp";
 
 export function Footer() {
   const settings = useSettings((s) => s.settings);
@@ -50,7 +51,7 @@ export function Footer() {
             )}
             {info.whatsapp && (
               <a
-                href={`https://wa.me/${info.whatsapp}`}
+                href={`https://wa.me/${formatWhatsAppNumber(info.whatsapp)}`}
                 aria-label="WhatsApp"
                 target="_blank"
                 rel="noopener noreferrer"

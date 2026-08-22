@@ -23,7 +23,7 @@ import { downloadBill } from "@/lib/bill";
 import { useAuth } from "@/lib/store/auth";
 import { useOrders, type Order, type OrderStatus } from "@/lib/store/orders";
 import { getOrderForTracking } from "@/lib/api/orders";
-import { buildOrderWhatsAppUrl, WA_PENDING_KEY } from "@/lib/whatsapp";
+import { buildOrderWhatsAppUrl, WA_PENDING_KEY, formatWhatsAppNumber } from "@/lib/whatsapp";
 
 type Stage = {
   key: OrderStatus;
@@ -370,7 +370,7 @@ function TrackPageContent() {
               <Phone className="size-4 mr-2" /> Call restaurant
             </Button>
           </a>
-          <a href={`https://wa.me/${settings?.whatsapp || ""}`} target="_blank" rel="noreferrer">
+          <a href={`https://wa.me/${formatWhatsAppNumber(settings?.whatsapp || "")}`} target="_blank" rel="noreferrer">
             <Button className="w-full">
               <MessageCircle className="size-4 mr-2" /> Chat on WhatsApp
             </Button>

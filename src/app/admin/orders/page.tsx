@@ -10,6 +10,7 @@ import { inr } from "@/lib/format";
 import { useSettings } from "@/lib/store/settings";
 import { useOrders, type Order, type OrderStatus } from "@/lib/store/orders";
 import { toast } from "sonner";
+import { formatWhatsAppNumber } from "@/lib/whatsapp";
 
 const statuses: OrderStatus[] = [
   "Pending",
@@ -81,8 +82,9 @@ export default function AdminOrders() {
       `We'll notify you when your order is ready. Thank you! 🙏`,
     ].join("\n");
 
-    const phone = o.contact.phone.replace(/\D/g, "");
-    const waUrl = `https://wa.me/${phone || settings?.whatsapp || ""}?text=${encodeURIComponent(msg)}`;
+    const phone = formatWhatsAppNumber(o.contact.phone);
+    const targetPhone = phone || formatWhatsAppNumber(settings?.whatsapp || "");
+    const waUrl = `https://wa.me/${targetPhone}?text=${encodeURIComponent(msg)}`;
     window.open(waUrl, "_blank");
     toast.success(`Order #${o.id} accepted & WhatsApp opened.`);
   };

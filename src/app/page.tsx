@@ -22,6 +22,7 @@ import { useSettings } from "@/lib/store/settings";
 import { useReviews } from "@/lib/store/reviews";
 import { reviews as mockReviews } from "@/lib/mock/reviews";
 import { useGallery } from "@/lib/store/gallery";
+import { formatWhatsAppNumber } from "@/lib/whatsapp";
 
 const heroSlides = [
   {
@@ -142,7 +143,7 @@ export default function Home() {
                 <Phone className="size-4 mr-2" /> Call
               </Button>
             </a>
-            <a href={`https://wa.me/${settings?.whatsapp || ""}`} className="hidden sm:inline-flex">
+            <a href={`https://wa.me/${formatWhatsAppNumber(settings?.whatsapp || "")}`} className="hidden sm:inline-flex">
               <Button
                 size="lg"
                 variant="ghost"

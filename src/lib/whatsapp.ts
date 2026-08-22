@@ -77,8 +77,17 @@ export function buildOrderMessage(o: WAOrder) {
     .trim();
 }
 
+export function formatWhatsAppNumber(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 10) {
+    return `91${digits}`; // Prepend India country code if 10 digits
+  }
+  return digits;
+}
+
 export function buildOrderWhatsAppUrl(o: WAOrder, whatsappNumber?: string) {
-  return `https://wa.me/${whatsappNumber || "918019551015"}?text=${encodeURIComponent(buildOrderMessage(o))}`;
+  const cleanNumber = formatWhatsAppNumber(whatsappNumber || "918019551015");
+  return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(buildOrderMessage(o))}`;
 }
 
 /** Open WhatsApp in a tab pre-opened synchronously on user click (avoids popup blockers). */
