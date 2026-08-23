@@ -40,8 +40,10 @@ service cloud.firestore {
 
     // Orders
     match /orders/{orderId} {
-      // Orders are created by server function
-      allow read: if isAdmin() || isOrderOwner();
+      // Allow tracking single order by its secure unguessable ID
+      allow get: if true;
+      // Restrict listing orders to owner or admin
+      allow list: if isAdmin() || isOrderOwner();
       allow write: if isAdmin();
     }
 
