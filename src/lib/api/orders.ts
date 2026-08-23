@@ -82,7 +82,13 @@ export const createOrder = async (rawData: unknown) => {
 
     await rateLimit(`order_${data.contact.phone}`, 5, 10 * 60 * 1000);
 
-    const userId = await resolveUserIdFromToken(data.idToken);
+    let userId: string | null = null;
+    if (data.idToken) {
+      userId = await resolveUserIdFromToken(data.idToken);
+      if (!userId) {
+        throw new Error("Could not verify your authenticated session. Please sign out and sign in again to refresh your session.");
+      }
+    }
 
     const menuItemsSnapshot = await adminDb.collection("menu_items").get();
     const menuItemsMap = new Map<string, Record<string, unknown>>();

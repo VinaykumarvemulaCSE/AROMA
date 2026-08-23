@@ -14,11 +14,15 @@ export async function verifyAdmin(idToken: string) {
 }
 
 export async function resolveUserIdFromToken(idToken?: string) {
-  if (!idToken) return null;
+  if (!idToken) {
+    console.log("resolveUserIdFromToken: No idToken provided");
+    return null;
+  }
   try {
     const decoded = await verifyIdToken(idToken);
     return decoded.uid;
-  } catch {
+  } catch (err) {
+    console.error("resolveUserIdFromToken: ID Token verification failed:", err);
     return null;
   }
 }
