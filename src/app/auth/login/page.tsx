@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { SiteLayout } from "@/components/layout/SiteLayout";
@@ -23,6 +24,7 @@ function LoginForm() {
   
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const goAfterLogin = () => {
@@ -164,14 +166,24 @@ function LoginForm() {
                 Forgot password?
               </button>
             </div>
-            <Input
-              type="password"
-              value={pwd}
-              onChange={(e) => setPwd(e.target.value)}
-              className="mt-1.5"
-              placeholder="••••••••"
-              required
-            />
+            <div className="relative">
+              <Input
+                type={showPwd ? "text" : "password"}
+                value={pwd}
+                onChange={(e) => setPwd(e.target.value)}
+                placeholder="••••••••"
+                required
+                className="mt-1.5 pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPwd(!showPwd)}
+                className="absolute right-3 top-[calc(50%+3px)] -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label={showPwd ? "Hide password" : "Show password"}
+              >
+                {showPwd ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
           </div>
           <Button type="submit" className="w-full" size="lg" disabled={loading}>
             {loading ? "Signing in…" : "Sign in"}

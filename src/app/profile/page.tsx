@@ -17,11 +17,15 @@ import {
   Calendar,
   Save,
   Loader2,
+  Download,
+  RotateCcw,
 } from "lucide-react";
+import { useCart } from "@/lib/store/cart";
 import { signOutUser } from "@/lib/auth/session";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { extract10DigitPhone } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,7 +35,10 @@ import { useAuth } from "@/lib/store/auth";
 import { useAddresses, type SavedAddress } from "@/lib/store/address";
 import { useMenu } from "@/lib/store/menu";
 import { useTables } from "@/lib/store/tables";
+import { useOrders } from "@/lib/store/orders";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { inr } from "@/lib/format";
+import { downloadBill } from "@/lib/bill";
 import { MenuCard } from "@/components/menu/MenuCard";
 import { toast } from "sonner";
 import {
@@ -58,6 +65,8 @@ export default function Profile() {
   const router = useRouter();
   const menu = useMenu((s) => s.menu);
   const { reservations } = useTables();
+  const orders = useOrders((s) => s.orders);
+  const reorderCart = useCart((s) => s.reorder);
 
   // Redirect unauthenticated or unverified email/password users
   useEffect(() => {
@@ -91,7 +100,7 @@ export default function Profile() {
 
     const unsub = listenToUserProfile(user.id, (profile) => {
       setProfileName(profile.name || user.name);
-      setProfilePhone(profile.phone || user.phone || "");
+      setProfilePhone(extract10DigitPhone(profile.phone || user.phone));
       setNotif(profile.notifications);
     });
 
@@ -185,6 +194,7 @@ export default function Profile() {
   const userReservations = reservations.filter(
     (r) => r.phone === user?.phone || r.email === user?.email,
   );
+  const userOrders = orders.filter((o) => o.userId === user?.id);
 
   const handleSignOut = async () => {
     await signOutUser();
@@ -250,21 +260,25 @@ export default function Profile() {
         </div>
 
         <Tabs defaultValue="info" className="mt-8">
-          <TabsList className="grid grid-cols-5 w-full max-w-3xl">
-            <TabsTrigger value="info">Info</TabsTrigger>
-            <TabsTrigger value="addresses">
+          <TabsList className="flex w-full max-w-3xl overflow-x-auto justify-start h-auto p-1 border">
+            <TabsTrigger value="info" className="shrink-0">Info</TabsTrigger>
+            <TabsTrigger value="orders" className="shrink-0">
+              <ShoppingBag className="size-3.5 mr-1" />
+              Orders
+            </TabsTrigger>
+            <TabsTrigger value="addresses" className="shrink-0">
               <MapPin className="size-3.5 mr-1" />
               Addresses
             </TabsTrigger>
-            <TabsTrigger value="reservations">
+            <TabsTrigger value="reservations" className="shrink-0">
               <Calendar className="size-3.5 mr-1" />
               Reservations
             </TabsTrigger>
-            <TabsTrigger value="favs">
+            <TabsTrigger value="favs" className="shrink-0">
               <Heart className="size-3.5 mr-1" />
               Favorites
             </TabsTrigger>
-            <TabsTrigger value="notif">
+            <TabsTrigger value="notif" className="shrink-0">
               <Bell className="size-3.5 mr-1" />
               Alerts
             </TabsTrigger>
@@ -298,9 +312,10 @@ export default function Profile() {
                 <Label>Phone</Label>
                 <Input
                   value={profilePhone}
-                  onChange={(e) => setProfilePhone(e.target.value)}
+                  onChange={(e) => setProfilePhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                   className="mt-1.5"
-                  placeholder="+91 …"
+                  maxLength={10}
+                  placeholder="10-digit mobile number"
                 />
               </div>
               <Button type="submit" className="sm:col-span-2 w-fit" disabled={saving}>
@@ -401,6 +416,76 @@ export default function Profile() {
                             <Trash2 className="size-3 mr-1" /> Remove
                           </Button>
                         </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* ── Orders tab ── */}
+          <TabsContent value="orders" className="mt-6">
+            <div className="max-w-2xl">
+              {userOrders.length === 0 ? (
+                <div className="bg-card border border-border rounded-2xl p-8 text-center">
+                  <ShoppingBag className="size-10 mx-auto text-muted-foreground" />
+                  <p className="mt-3 text-muted-foreground">No orders yet.</p>
+                  <Link href="/menu">
+                    <Button className="mt-4" variant="outline">Browse menu</Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {userOrders.map((o) => (
+                    <div
+                      key={o.id}
+                      className="bg-card border border-border rounded-2xl p-4 flex flex-col sm:flex-row gap-3 sm:items-center"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm">#{o.id}</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">
+                            {o.status}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {new Date(o.createdAt).toLocaleString("en-IN")}
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-1 truncate">
+                          {o.items.length} items · {o.items.map((i) => i.name).join(", ")}
+                        </p>
+                        <p className="font-display font-semibold mt-1">{inr(o.total)}</p>
+                      </div>
+                      <div className="flex gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-xs"
+                          onClick={() => {
+                            reorderCart(
+                              o.items.map((i) => ({
+                                id: i.id,
+                                name: i.name,
+                                price: i.price,
+                                image:
+                                  i.image ||
+                                  "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80",
+                                qty: i.qty || 1,
+                              }))
+                            );
+                            toast.success("Items added to your cart!");
+                            router.push("/cart");
+                          }}
+                        >
+                          <RotateCcw className="size-3 mr-1" /> Reorder
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => downloadBill(o)}>
+                          <Download className="size-3 mr-1" /> Bill
+                        </Button>
+                        <Link href={`/track/${o.id}`}>
+                          <Button size="sm" className="h-8 text-xs">Track</Button>
+                        </Link>
                       </div>
                     </div>
                   ))}
@@ -529,15 +614,6 @@ export default function Profile() {
             </div>
           </TabsContent>
         </Tabs>
-
-        <div className="mt-10 flex gap-3 flex-wrap">
-          <Link href="/orders">
-            <Button variant="outline">
-              <ShoppingBag className="size-4 mr-2" />
-              Order history
-            </Button>
-          </Link>
-        </div>
       </section>
 
       {/* ── Add / Edit address dialog ── */}
@@ -628,8 +704,10 @@ export default function Profile() {
                 </Label>
                 <Input
                   value={addrForm.phone}
-                  onChange={(e) => setAddrForm({ ...addrForm, phone: e.target.value })}
+                  onChange={(e) => setAddrForm({ ...addrForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
                   className="mt-1.5"
+                  maxLength={10}
+                  placeholder="10-digit mobile number"
                   required
                 />
               </div>

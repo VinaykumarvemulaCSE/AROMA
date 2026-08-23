@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useSettings } from "@/lib/store/settings";
+import { useAuth } from "@/lib/store/auth";
 import { sendContactEmail } from "@/lib/api/contact-email";
 import { toast } from "sonner";
 import { formatWhatsAppNumber } from "@/lib/whatsapp";
@@ -16,13 +17,20 @@ export default function Contact() {
   const settings = useSettings((s) => s.settings);
   const fetchSettings = useSettings((s) => s.fetchSettings);
   const [loading, setLoading] = useState(false);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const user = useAuth((s) => s.user);
+  
+  const [name, setName] = useState(user?.name || "");
+  const [email, setEmail] = useState(user?.email || "");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
+
+  useEffect(() => {
+    if (user?.name) setName(user.name);
+    if (user?.email) setEmail(user.email);
+  }, [user]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();

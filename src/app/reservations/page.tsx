@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/store/auth";
 import { useSettings, type DayKey } from "@/lib/store/settings";
 import { createReservation, checkAvailability } from "@/lib/api/reservations";
 import { toast } from "sonner";
+import { extract10DigitPhone } from "@/lib/utils";
 
 const occasions = [
   "",
@@ -46,7 +47,7 @@ export default function Reservations() {
     party: savedPrefs.preferredParty || 2,
     name: user?.name ?? "",
     email: user?.email ?? "",
-    phone: user?.phone ?? "",
+    phone: extract10DigitPhone(user?.phone ?? ""),
     occasion: "",
     notes: savedPrefs.defaultNote || "",
     seat: savedPrefs.preferredSeat || "",
@@ -314,7 +315,9 @@ export default function Reservations() {
           <Field label="Phone" required>
             <Input
               value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+              maxLength={10}
+              placeholder="10-digit mobile number"
               required
             />
           </Field>

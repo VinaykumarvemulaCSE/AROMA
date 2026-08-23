@@ -240,7 +240,8 @@ function TrackPageContent() {
               <Input
                 className="mt-1.5"
                 value={phoneInput}
-                onChange={(e) => setPhoneInput(e.target.value)}
+                onChange={(e) => setPhoneInput(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                maxLength={10}
                 placeholder="10-digit mobile number"
                 required
               />

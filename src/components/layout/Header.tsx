@@ -123,8 +123,12 @@ export function Header() {
           <div className="relative flex flex-col h-full">
             <div className="flex items-center justify-between p-4 border-b border-border">
               <span className="font-display font-semibold">Menu</span>
-              <button onClick={() => setOpen(false)} aria-label="Close menu">
-                <X />
+              <button
+                onClick={() => setOpen(false)}
+                aria-label="Close menu"
+                className="rounded-full p-1.5 bg-secondary/80 hover:bg-secondary border border-border shadow-sm transition-all hover:scale-105 cursor-pointer"
+              >
+                <X className="size-4" />
               </button>
             </div>
             <nav className="flex flex-col p-4 gap-1 overflow-y-auto">

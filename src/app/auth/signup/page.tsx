@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { SiteLayout } from "@/components/layout/SiteLayout";
@@ -23,6 +24,7 @@ function SignupForm() {
   const redirectTo = searchParams.get("redirect");
 
   const [form, setForm] = useState({ name: "", email: "", pwd: "", confirm: "" });
+  const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const goAfterSignup = () => {
@@ -176,20 +178,30 @@ function SignupForm() {
           </div>
           <div>
             <Label>Password</Label>
-            <Input
-              type="password"
-              value={form.pwd}
-              onChange={(e) => setForm({ ...form, pwd: e.target.value })}
-              className="mt-1.5"
-              placeholder="Min 6 characters"
-              minLength={6}
-              required
-            />
+            <div className="relative">
+              <Input
+                type={showPwd ? "text" : "password"}
+                value={form.pwd}
+                onChange={(e) => setForm({ ...form, pwd: e.target.value })}
+                className="mt-1.5 pr-10"
+                placeholder="Min 6 characters"
+                minLength={6}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPwd(!showPwd)}
+                className="absolute right-3 top-[calc(50%+3px)] -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label={showPwd ? "Hide password" : "Show password"}
+              >
+                {showPwd ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
           </div>
           <div>
             <Label>Confirm password</Label>
             <Input
-              type="password"
+              type={showPwd ? "text" : "password"}
               value={form.confirm}
               onChange={(e) => setForm({ ...form, confirm: e.target.value })}
               className="mt-1.5"

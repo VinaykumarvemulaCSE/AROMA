@@ -9,6 +9,7 @@ import {
   sendPasswordResetEmail,
   getIdTokenResult,
 } from "firebase/auth";
+import { Eye, EyeOff } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/lib/store/auth";
 import { hasAdminClaim } from "@/lib/auth/admin";
@@ -41,6 +42,7 @@ function LoginContent() {
   const initialized = useAuth((s) => s.initialized);
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -147,14 +149,24 @@ function LoginContent() {
                 Forgot password?
               </button>
             </div>
-            <Input
-              type="password"
-              value={pwd}
-              onChange={(e) => setPwd(e.target.value)}
-              className="mt-1.5"
-              placeholder="Enter Password..."
-              required
-            />
+            <div className="relative">
+              <Input
+                type={showPwd ? "text" : "password"}
+                value={pwd}
+                onChange={(e) => setPwd(e.target.value)}
+                className="mt-1.5 pr-10"
+                placeholder="Enter Password..."
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPwd(!showPwd)}
+                className="absolute right-3 top-[calc(50%+3px)] -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label={showPwd ? "Hide password" : "Show password"}
+              >
+                {showPwd ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
           </div>
           <Button type="submit" className="w-full" size="lg" disabled={loading}>
             {loading ? "Signing in…" : "Sign in"}

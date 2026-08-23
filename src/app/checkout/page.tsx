@@ -22,6 +22,7 @@ import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { inr } from "@/lib/format";
 import { buildOrderWhatsAppUrl, openWhatsAppInTab, WA_PENDING_KEY } from "@/lib/whatsapp";
 import { toast } from "sonner";
+import { extract10DigitPhone } from "@/lib/utils";
 
 const steps = ["Review", "Address", "Contact", "Confirm"] as const;
 
@@ -60,6 +61,8 @@ export default function CheckoutPage() {
   const delivery = subtotal >= freeDeliveryThreshold ? 0 : deliveryFee;
 
   const [step, setStep] = useState(0);
+  const [showGuestDialog, setShowGuestDialog] = useState(false);
+  const [guestProceed, setGuestProceed] = useState(false);
   
   // Auto-fill address from saved default address or user profile
   const defaultAddress = addresses.find((a) => a.isDefault) || addresses[0];
@@ -92,7 +95,7 @@ export default function CheckoutPage() {
         ...prev,
         name: user.name || prev.name,
         email: user.email || prev.email,
-        phone: user.phone || prev.phone,
+        phone: extract10DigitPhone(user.phone || prev.phone),
       }));
     }
   }, [user]);
@@ -106,7 +109,7 @@ export default function CheckoutPage() {
         landmark: defaultAddress.landmark ?? "",
         city: defaultAddress.city,
         pin: defaultAddress.pin,
-        phone: defaultAddress.phone || user?.phone || "",
+        phone: extract10DigitPhone(defaultAddress.phone || user?.phone || ""),
         type: defaultAddress.label,
         notes: "",
       });
@@ -179,6 +182,10 @@ export default function CheckoutPage() {
   }
 
   const next = () => {
+    if (step === 0 && !user && !guestProceed) {
+      setShowGuestDialog(true);
+      return;
+    }
     if (step === 1) {
       if (!addr.line1 || !addr.pin || !addr.phone) {
         toast.error("Please fill in all required address fields (Line 1, Pincode, Phone).");
@@ -475,8 +482,10 @@ export default function CheckoutPage() {
                   <Field label="Phone" required>
                     <Input
                       value={addr.phone}
-                      onChange={(e) => setAddr({ ...addr, phone: e.target.value })}
+                      onChange={(e) => setAddr({ ...addr, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
                       disabled={isSubmitting}
+                      maxLength={10}
+                      placeholder="10-digit mobile number"
                     />
                   </Field>
                 </div>
@@ -530,8 +539,10 @@ export default function CheckoutPage() {
                   <Field label="Phone" required>
                     <Input
                       value={contact.phone}
-                      onChange={(e) => setContact({ ...contact, phone: e.target.value })}
+                      onChange={(e) => setContact({ ...contact, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
                       disabled={isSubmitting}
+                      maxLength={10}
+                      placeholder="10-digit mobile number"
                     />
                   </Field>
                 </div>
@@ -686,6 +697,33 @@ export default function CheckoutPage() {
           </aside>
         </div>
       </section>
+
+      {/* Guest Checkout Dialog */}
+      {showGuestDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-2xl p-6 max-w-sm w-full shadow-lg text-center">
+            <h3 className="font-display font-semibold text-lg">Sign in to save your order</h3>
+            <p className="text-sm text-muted-foreground mt-2">
+              If you continue as a guest, your order details and tracking won't be saved to an account.
+            </p>
+            <div className="mt-6 flex flex-col gap-3">
+              <Button onClick={() => router.push("/auth/login?redirect=/checkout")}>
+                Sign In or Sign Up
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowGuestDialog(false);
+                  setGuestProceed(true);
+                  setStep(1);
+                }}
+              >
+                Continue as Guest
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </SiteLayout>
   );
 }

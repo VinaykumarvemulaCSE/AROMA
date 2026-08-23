@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Search, MessageCircle, CheckCircle2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Search, MessageCircle, CheckCircle2, Volume2, VolumeX, BellRing } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,46 @@ import { useSettings } from "@/lib/store/settings";
 import { useOrders, type Order, type OrderStatus } from "@/lib/store/orders";
 import { toast } from "sonner";
 import { formatWhatsAppNumber } from "@/lib/whatsapp";
+
+function playOrderChime() {
+  try {
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof window.AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    // A bright, energetic major chord arpeggio (like a cheerful cafe barista bell)
+    // Frequencies for C5, E5, G5, C6
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    
+    notes.forEach((freq, index) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      // Triangle wave sounds a bit more like a marimba/bell than pure sine
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(freq, now);
+      
+      // Stagger the notes by 0.08 seconds
+      const startTime = now + index * 0.08;
+      
+      // Quick attack, smooth decay
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(0.3, startTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.6);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start(startTime);
+      osc.stop(startTime + 0.7);
+    });
+  } catch (err) {
+    console.warn("Could not play audio alert:", err);
+  }
+}
 
 const statuses: OrderStatus[] = [
   "Pending",
@@ -41,6 +81,33 @@ export default function AdminOrders() {
   const [filter, setFilter] = useState<"All" | OrderStatus>("All");
   const [q, setQ] = useState("");
   const [view, setView] = useState<Order | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
+  const knownPendingIds = useRef<Set<string> | null>(null);
+
+  // Trigger live chime alert on new Pending order arrival
+  useEffect(() => {
+    const currentPending = new Set(
+      orders.filter((o) => o.status === "Pending").map((o) => o.id)
+    );
+
+    if (knownPendingIds.current !== null) {
+      const hasNewPending = Array.from(currentPending).some(
+        (id) => !knownPendingIds.current?.has(id)
+      );
+
+      if (hasNewPending) {
+        if (soundEnabled) {
+          playOrderChime();
+        }
+        toast.info("🔔 New Pending Order!", {
+          description: "A new order has just arrived in your dashboard.",
+        });
+      }
+    }
+
+    knownPendingIds.current = currentPending;
+  }, [orders, soundEnabled]);
 
   useEffect(() => {
     fetchSettings();
@@ -83,9 +150,9 @@ export default function AdminOrders() {
     ].join("\n");
 
     const phone = formatWhatsAppNumber(o.contact.phone);
-    const targetPhone = phone || formatWhatsAppNumber(settings?.whatsapp || "");
-    const waUrl = `https://wa.me/${targetPhone}?text=${encodeURIComponent(msg)}`;
-    window.open(waUrl, "_blank");
+    if (phone) {
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+    }
     toast.success(`Order #${o.id} accepted & WhatsApp opened.`);
   };
 
@@ -115,7 +182,40 @@ export default function AdminOrders() {
 
   return (
     <AdminLayout>
-      <h1 className="text-2xl sm:text-3xl font-display font-bold">Orders</h1>
+      <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
+        <h1 className="text-2xl sm:text-3xl font-display font-bold">Orders</h1>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              playOrderChime();
+              toast.success("Test chime played!");
+            }}
+            title="Test audio alert sound"
+          >
+            <BellRing className="size-4 mr-1.5 text-amber-500" /> Test Sound
+          </Button>
+          <Button
+            variant={soundEnabled ? "default" : "secondary"}
+            size="sm"
+            onClick={() => {
+              setSoundEnabled(!soundEnabled);
+              toast.success(!soundEnabled ? "Audio alerts enabled" : "Audio alerts muted");
+            }}
+          >
+            {soundEnabled ? (
+              <>
+                <Volume2 className="size-4 mr-1.5" /> Audio Alerts: ON
+              </>
+            ) : (
+              <>
+                <VolumeX className="size-4 mr-1.5 text-muted-foreground" /> Audio Alerts: OFF
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
 
       {/* Filters */}
       <div className="mt-5 flex flex-wrap gap-2">

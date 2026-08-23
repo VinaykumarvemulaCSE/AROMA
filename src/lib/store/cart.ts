@@ -17,6 +17,7 @@ type CartState = {
   remove: (id: string) => void;
   setQty: (id: string, qty: number) => void;
   clear: () => void;
+  reorder: (lines: CartLine[]) => void;
   count: () => number;
   subtotal: () => number;
 };
@@ -49,6 +50,19 @@ export const useCart = create<CartState>()(
               : s.lines.map((l) => (l.id === id ? { ...l, qty } : l)),
         })),
       clear: () => set({ lines: [] }),
+      reorder: (newLines) =>
+        set((s) => {
+          // Merge new items into existing cart or replace
+          const existingMap = new Map(s.lines.map((l) => [l.id, { ...l }]));
+          for (const line of newLines) {
+            if (existingMap.has(line.id)) {
+              existingMap.get(line.id)!.qty += line.qty;
+            } else {
+              existingMap.set(line.id, { ...line });
+            }
+          }
+          return { lines: Array.from(existingMap.values()) };
+        }),
       count: () => get().lines.reduce((s, l) => s + l.qty, 0),
       subtotal: () => get().lines.reduce((s, l) => s + l.qty * l.price, 0),
     }),
