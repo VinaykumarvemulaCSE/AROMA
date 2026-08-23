@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getDb } from "../firebase-admin.server";
 import { assertProductionSecrets } from "../config.server";
 import { rateLimit } from "./rate-limit.server";
+import { parseSafe, formatZodError } from "./helper";
 
 const couponSchema = z.object({
   code: z.string().min(1),
@@ -10,8 +11,8 @@ const couponSchema = z.object({
 });
 
 export const validateCouponCode = async (rawData: unknown) => {
-  const data = couponSchema.parse(rawData);
   try {
+    const data = parseSafe(couponSchema, rawData);
     assertProductionSecrets({ firebase: true });
     const adminDb = await getDb();
     await rateLimit(`coupon_${data.code.toUpperCase()}`, 20, 60 * 1000);
@@ -48,7 +49,7 @@ export const validateCouponCode = async (rawData: unknown) => {
     console.error("Coupon Validation Error:", e);
     return {
       valid: false as const,
-      error: e instanceof Error ? e.message : String(e),
+      error: formatZodError(e),
     };
   }
 };

@@ -7,12 +7,13 @@ import {
 } from "../email.server";
 import { assertProductionSecrets, getAppUrl } from "../config.server";
 import { rateLimit } from "./rate-limit.server";
+import { parseSafe, formatZodError } from "./helper";
 
 const resendSchema = z.object({ email: z.string().email() });
 
 export const resendVerificationEmail = async (rawData: unknown) => {
-  const data = resendSchema.parse(rawData);
   try {
+    const data = parseSafe(resendSchema, rawData);
     assertProductionSecrets({ firebase: true, smtp: true });
     await rateLimit(`resend_verify_${data.email.toLowerCase()}`, 5, 60 * 60 * 1000);
 
@@ -40,7 +41,7 @@ export const resendVerificationEmail = async (rawData: unknown) => {
     console.error("Resend verification error:", e);
     return {
       success: false as const,
-      error: e instanceof Error ? e.message : String(e),
+      error: formatZodError(e),
     };
   }
 };

@@ -6,6 +6,7 @@ import { assertProductionSecrets } from "../config.server";
 import { orderSchema } from "../validation/schemas";
 import { rateLimit } from "./rate-limit.server";
 import { resolveUserIdFromToken } from "./auth-server.server";
+import { parseSafe, formatZodError } from "./helper";
 
 function normalizePhone(phone: string) {
   return phone.replace(/\D/g, "");
@@ -17,8 +18,8 @@ const trackingSchema = z.object({
 });
 
 export const getOrderForTracking = async (rawData: unknown) => {
-  const data = trackingSchema.parse(rawData);
   try {
+    const data = parseSafe(trackingSchema, rawData);
     assertProductionSecrets({ firebase: true });
     const adminDb = await getDb();
 
@@ -67,15 +68,15 @@ export const getOrderForTracking = async (rawData: unknown) => {
     console.error("Tracking Error:", e);
     return {
       success: false as const,
-      error: e instanceof Error ? e.message : String(e),
+      error: formatZodError(e),
       order: null,
     };
   }
 };
 
 export const createOrder = async (rawData: unknown) => {
-  const data = orderSchema.parse(rawData);
   try {
+    const data = parseSafe(orderSchema, rawData);
     assertProductionSecrets({ firebase: true, smtp: true });
     const adminDb = await getDb();
 
@@ -214,7 +215,7 @@ export const createOrder = async (rawData: unknown) => {
     console.error("Order Creation Error:", e);
     return {
       success: false as const,
-      error: e instanceof Error ? e.message : String(e),
+      error: formatZodError(e),
     };
   }
 };

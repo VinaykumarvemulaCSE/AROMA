@@ -4,6 +4,7 @@ import { getDb } from "../firebase-admin.server";
 import { assertProductionSecrets } from "../config.server";
 import { rateLimit } from "./rate-limit.server";
 import { sanitizeInput } from "../sanitize";
+import { parseSafe, formatZodError } from "./helper";
 
 const reviewInputSchema = z.object({
   name: z.string().min(2).max(100),
@@ -14,8 +15,8 @@ const reviewInputSchema = z.object({
 });
 
 export const submitReview = async (rawData: unknown) => {
-  const data = reviewInputSchema.parse(rawData);
   try {
+    const data = parseSafe(reviewInputSchema, rawData);
     assertProductionSecrets({ firebase: true });
     const adminDb = await getDb();
     await rateLimit(`review_${data.name.slice(0, 20)}`, 3, 60 * 60 * 1000);

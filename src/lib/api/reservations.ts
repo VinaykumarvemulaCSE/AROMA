@@ -5,6 +5,7 @@ import { assertProductionSecrets } from "../config.server";
 import { reservationSchema } from "../validation/schemas";
 import { sendReservationEmailInternal } from "../email.server";
 import { rateLimit } from "./rate-limit.server";
+import { parseSafe, formatZodError } from "./helper";
 
 const availabilitySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -13,8 +14,8 @@ const availabilitySchema = z.object({
 });
 
 export const checkAvailability = async (rawData: unknown) => {
-  const data = availabilitySchema.parse(rawData);
   try {
+    const data = parseSafe(availabilitySchema, rawData);
     assertProductionSecrets({ firebase: true });
     const adminDb = await getDb();
     const datetime = `${data.date}T${data.timeSlot}`;
@@ -46,14 +47,14 @@ export const checkAvailability = async (rawData: unknown) => {
     console.error("Availability check error:", e);
     return {
       available: false as const,
-      error: e instanceof Error ? e.message : String(e),
+      error: formatZodError(e),
     };
   }
 };
 
 export const createReservation = async (rawData: unknown) => {
-  const data = reservationSchema.parse(rawData);
   try {
+    const data = parseSafe(reservationSchema, rawData);
     assertProductionSecrets({ firebase: true, smtp: true });
     const adminDb = await getDb();
     await rateLimit(`res_${data.customer.phone}`, 5, 10 * 60 * 1000);
@@ -114,7 +115,7 @@ export const createReservation = async (rawData: unknown) => {
     console.error("Create reservation error:", e);
     return {
       success: false as const,
-      error: e instanceof Error ? e.message : String(e),
+      error: formatZodError(e),
     };
   }
 };

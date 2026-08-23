@@ -1,12 +1,15 @@
 import { z } from "zod";
 
 // Phone validation for Indian numbers (10 digits)
-const phoneRegex = /^[6-9]\d{9}$/;
-
 const normalizedPhone = z
   .string()
-  .transform((v) => v.replace(/\D/g, ""))
-  .pipe(z.string().regex(phoneRegex, "Invalid 10-digit phone number"));
+  .transform((v) => {
+    const digits = v.replace(/\D/g, "");
+    if (digits.length === 12 && digits.startsWith("91")) return digits.slice(2);
+    if (digits.length === 11 && digits.startsWith("0")) return digits.slice(1);
+    return digits;
+  })
+  .pipe(z.string().regex(/^\d{10}$/, "Invalid 10-digit phone number"));
 
 const normalizedPin = z
   .string()
@@ -53,8 +56,8 @@ export const reservationSchema = z.object({
     phone: normalizedPhone,
   }),
   reservation: z.object({
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)"),
-    timeSlot: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)"),
+    date: z.string().min(8, "Invalid date format"),
+    timeSlot: z.string().min(4, "Invalid time format"),
     guests: z.number().int().min(1).max(20),
     occasion: z.string().optional(),
     seat: z.string().optional(),
