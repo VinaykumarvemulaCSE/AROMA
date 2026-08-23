@@ -36,7 +36,7 @@ async function getApp(): Promise<App> {
 
   if (!_initPromise) {
     _initPromise = (async () => {
-      const { initializeApp, getApps, cert } = require("firebase-admin/app");
+      const { initializeApp, getApps, cert } = await import("firebase-admin/app");
       const existing = getApps();
       if (existing.length > 0) {
         _app = existing[0]!;
@@ -81,13 +81,13 @@ async function getApp(): Promise<App> {
 /** Returns an initialised Firestore instance. */
 export async function getDb(): Promise<Firestore> {
   const app = await getApp();
-  const { getFirestore } = require("firebase-admin/firestore");
+  const { getFirestore } = await import("firebase-admin/firestore");
   return getFirestore(app);
 }
 
 /** Returns an initialised Auth instance. */
 export async function getAdminAuth(): Promise<Auth> {
   const app = await getApp();
-  const { getAuth } = require("firebase-admin/auth");
+  const { getAuth } = await import("firebase-admin/auth");
   return getAuth(app);
 }
