@@ -62,10 +62,12 @@ export function hasFirebaseAdminCredentials(): boolean {
 export function loadFirebaseServiceAccount(): Record<string, unknown> {
   const base64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64?.trim();
   if (base64) {
-    return parseServiceAccountJson(
+    const parsed = parseServiceAccountJson(
       Buffer.from(base64, "base64").toString("utf-8"),
       "FIREBASE_SERVICE_ACCOUNT_BASE64",
     );
+    console.log("[Firebase Admin] Loaded service account for project ID:", parsed.project_id);
+    return parsed;
   }
 
   const rawJson = process.env.FIREBASE_SERVICE_ACCOUNT?.trim();
