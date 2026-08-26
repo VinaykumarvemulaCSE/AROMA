@@ -376,22 +376,32 @@ export default function CheckoutPage() {
         <h1 className="text-2xl sm:text-3xl font-display font-bold">Checkout</h1>
 
         {/* Stepper */}
-        <ol className="mt-4 sm:mt-6 flex items-center gap-1 sm:gap-2 overflow-x-auto pb-2 scrollbar-none">
+        <ol className="mt-4 sm:mt-6 flex items-center justify-between gap-1 sm:gap-2 pb-2">
           {steps.map((s, i) => (
-            <li key={s} className="flex items-center gap-1 sm:gap-2 flex-1 min-w-[70px] sm:min-w-0">
+            <li key={s} className="flex items-center gap-1.5 sm:gap-2 flex-1 last:flex-initial">
               <span
-                className={`grid place-items-center size-7 shrink-0 rounded-full text-xs font-bold transition-colors ${i <= step ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
+                className={`grid place-items-center size-7 sm:size-8 shrink-0 rounded-full text-xs font-bold transition-all shadow-sm ${
+                  i <= step
+                    ? "bg-primary text-primary-foreground ring-2 ring-primary/20"
+                    : "bg-secondary text-muted-foreground"
+                }`}
               >
                 {i < step ? <Check className="size-4" /> : i + 1}
               </span>
               <span
-                className={`text-xs sm:text-sm truncate ${i === step ? "font-semibold text-foreground" : "text-muted-foreground hidden sm:inline"}`}
+                className={`text-xs sm:text-sm whitespace-nowrap ${
+                  i === step
+                    ? "font-bold text-foreground inline"
+                    : "text-muted-foreground hidden sm:inline"
+                }`}
               >
                 {s}
               </span>
               {i < steps.length - 1 && (
                 <div
-                  className={`flex-1 h-px min-w-[12px] ${i < step ? "bg-primary" : "bg-border"}`}
+                  className={`flex-1 h-0.5 mx-1 sm:mx-2 min-w-[8px] transition-colors ${
+                    i < step ? "bg-primary" : "bg-border"
+                  }`}
                 />
               )}
             </li>
@@ -837,17 +847,27 @@ export default function CheckoutPage() {
             )}
 
             {/* Navigation buttons */}
-            <div className="mt-6 flex justify-between gap-2">
-              <Button variant="outline" onClick={back} disabled={step === 0 || isSubmitting}>
+            <div className="mt-8 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-border/60">
+              <Button
+                variant="outline"
+                onClick={back}
+                disabled={step === 0 || isSubmitting}
+                className="w-full sm:w-auto"
+              >
                 <ChevronLeft className="size-4 mr-1" /> Back
               </Button>
               {step < 3 ? (
-                <Button onClick={next} disabled={isSubmitting}>
+                <Button
+                  onClick={next}
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto font-semibold px-6"
+                >
                   Next <ChevronRight className="size-4 ml-1" />
                 </Button>
               ) : (
                 <Button
                   onClick={placeOrder}
+                  className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold px-6 shadow-md hover:shadow-lg transition-all"
                   disabled={
                     !agree ||
                     !contact.name ||

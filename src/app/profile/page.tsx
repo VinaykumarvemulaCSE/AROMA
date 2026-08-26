@@ -237,7 +237,7 @@ export default function Profile() {
 
   return (
     <SiteLayout>
-      <section className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-12">
+      <section className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6 pb-32 md:py-12 md:pb-12">
         {/* Header */}
         <div className="flex items-center gap-4">
           {user.avatar ? (
@@ -249,41 +249,43 @@ export default function Profile() {
               {user.name[0]?.toUpperCase()}
             </div>
           )}
-          <div className="flex-1">
-            <h1 className="text-2xl font-display font-bold">{profileName || user.name}</h1>
-            <p className="text-muted-foreground text-sm">{user.email}</p>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl font-display font-bold truncate">{profileName || user.name}</h1>
+            <p className="text-muted-foreground text-sm truncate">{user.email}</p>
           </div>
-          <Button variant="outline" onClick={handleSignOut}>
-            <LogOut className="size-4 mr-2" /> Sign out
+          <Button variant="outline" size="sm" onClick={handleSignOut} className="shrink-0">
+            <LogOut className="size-4 sm:mr-2" /> <span className="hidden sm:inline">Sign out</span>
           </Button>
         </div>
 
-        <Tabs defaultValue="info" className="mt-8">
-          <TabsList className="flex w-full overflow-x-auto justify-start h-auto p-1 border flex-nowrap scrollbar-none snap-x select-none bg-muted/50 rounded-lg">
-            <TabsTrigger value="info" className="shrink-0 snap-start">
-              Info
-            </TabsTrigger>
-            <TabsTrigger value="orders" className="shrink-0 snap-start">
-              <ShoppingBag className="size-3.5 mr-1" />
-              Orders
-            </TabsTrigger>
-            <TabsTrigger value="addresses" className="shrink-0 snap-start">
-              <MapPin className="size-3.5 mr-1" />
-              Addresses
-            </TabsTrigger>
-            <TabsTrigger value="reservations" className="shrink-0 snap-start">
-              <Calendar className="size-3.5 mr-1" />
-              Reservations
-            </TabsTrigger>
-            <TabsTrigger value="favs" className="shrink-0 snap-start">
-              <Heart className="size-3.5 mr-1" />
-              Favorites
-            </TabsTrigger>
-            <TabsTrigger value="notif" className="shrink-0 snap-start">
-              <Bell className="size-3.5 mr-1" />
-              Alerts
-            </TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="info" className="mt-6 sm:mt-8">
+          <div className="w-full overflow-x-auto pb-1 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+            <TabsList className="inline-flex w-max min-w-full justify-start h-auto p-1.5 border gap-1 select-none bg-muted/60 rounded-xl">
+              <TabsTrigger value="info" className="px-3.5 py-1.5 text-xs sm:text-sm font-medium rounded-lg shrink-0">
+                Info
+              </TabsTrigger>
+              <TabsTrigger value="orders" className="px-3.5 py-1.5 text-xs sm:text-sm font-medium rounded-lg shrink-0">
+                <ShoppingBag className="size-3.5 mr-1.5" />
+                Orders
+              </TabsTrigger>
+              <TabsTrigger value="addresses" className="px-3.5 py-1.5 text-xs sm:text-sm font-medium rounded-lg shrink-0">
+                <MapPin className="size-3.5 mr-1.5" />
+                Addresses
+              </TabsTrigger>
+              <TabsTrigger value="reservations" className="px-3.5 py-1.5 text-xs sm:text-sm font-medium rounded-lg shrink-0">
+                <Calendar className="size-3.5 mr-1.5" />
+                Reservations
+              </TabsTrigger>
+              <TabsTrigger value="favs" className="px-3.5 py-1.5 text-xs sm:text-sm font-medium rounded-lg shrink-0">
+                <Heart className="size-3.5 mr-1.5" />
+                Favorites
+              </TabsTrigger>
+              <TabsTrigger value="notif" className="px-3.5 py-1.5 text-xs sm:text-sm font-medium rounded-lg shrink-0">
+                <Bell className="size-3.5 mr-1.5" />
+                Alerts
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* ── Info tab ── */}
           <TabsContent value="info" className="mt-6">
