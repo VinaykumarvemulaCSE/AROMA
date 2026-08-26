@@ -33,6 +33,7 @@ export type Settings = {
   categories: { name: string; icon: string }[];
   storeStatusOverride?: "auto" | "open" | "busy" | "closed";
   storeNotice?: string;
+  showLiveStatus?: boolean;
   flashSaleEnabled?: boolean;
   flashSaleText?: string;
   flashSaleCode?: string;
@@ -77,6 +78,7 @@ export const DEFAULTS: Settings = {
   ],
   storeStatusOverride: "auto",
   storeNotice: "",
+  showLiveStatus: true,
   flashSaleEnabled: true,
   flashSaleText: "Flat 20% OFF on all Starters & Shakes",
   flashSaleCode: "AROMA20",

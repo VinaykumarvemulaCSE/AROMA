@@ -119,6 +119,10 @@ export function StoreStatusBadge({ className = "" }: { className?: string }) {
     return () => clearInterval(interval);
   }, [settings]);
 
+  if (settings?.showLiveStatus === false) {
+    return null;
+  }
+
   return (
     <div
       className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium backdrop-blur-sm shadow-xs ${status.badgeBg} ${status.badgeBorder} ${className}`}

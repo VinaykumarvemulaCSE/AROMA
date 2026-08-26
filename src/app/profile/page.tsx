@@ -239,7 +239,7 @@ export default function Profile() {
     <SiteLayout>
       <section className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6 pb-32 md:py-12 md:pb-12">
         {/* Header */}
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center gap-4">
           {user.avatar ? (
             <div className="relative size-16 rounded-full overflow-hidden shrink-0">
               <Image src={user.avatar} fill sizes="64px" className="object-cover" alt="avatar" />
@@ -249,18 +249,18 @@ export default function Profile() {
               {user.name[0]?.toUpperCase()}
             </div>
           )}
-          <div className="flex-1 min-w-0">
+          <div className="sm:flex-1 min-w-0">
             <h1 className="text-2xl font-display font-bold truncate">{profileName || user.name}</h1>
             <p className="text-muted-foreground text-sm truncate">{user.email}</p>
           </div>
-          <Button variant="outline" size="sm" onClick={handleSignOut} className="shrink-0">
+          <Button variant="outline" size="sm" onClick={handleSignOut} className="mt-2 w-full sm:w-auto sm:mt-0">
             <LogOut className="size-4 sm:mr-2" /> <span className="hidden sm:inline">Sign out</span>
           </Button>
         </div>
 
         <Tabs defaultValue="info" className="mt-6 sm:mt-8">
-          <div className="w-full overflow-x-auto pb-1 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
-            <TabsList className="inline-flex w-max min-w-full justify-start h-auto p-1.5 border gap-1 select-none bg-muted/60 rounded-xl">
+          <div className="w-full overflow-x-auto pb-1 scrollbar-none px-2 sm:px-0">
+            <TabsList className="inline-flex w-full justify-start h-auto p-1.5 border gap-1 select-none bg-muted/60 rounded-xl flex-wrap">
               <TabsTrigger value="info" className="px-3.5 py-1.5 text-xs sm:text-sm font-medium rounded-lg shrink-0">
                 Info
               </TabsTrigger>

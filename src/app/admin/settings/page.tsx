@@ -233,7 +233,22 @@ export default function AdminSettings() {
         </Card>
 
         <Card title="Live Kitchen & Store Status">
-          <div className="space-y-3">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-border/50">
+              <div>
+                <p className="text-sm font-medium">Show Live Status Badge to Customers</p>
+                <p className="text-xs text-muted-foreground">
+                  Displays the real-time operational status (Open / Rush / Closed) pill on Home and Menu pages
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={s.showLiveStatus !== false}
+                onChange={(e) => upd("showLiveStatus", e.target.checked)}
+                className="size-5 rounded accent-primary cursor-pointer"
+              />
+            </div>
+
             <Field label="Operating Mode Override">
               <select
                 value={s.storeStatusOverride || "auto"}
@@ -254,7 +269,7 @@ export default function AdminSettings() {
               />
             </Field>
             <p className="text-xs text-muted-foreground">
-              When forced to "Kitchen Closed", the store status pill turns red across the customer home & menu screens.
+              When enabled, customers see instant live updates regarding prep times, rush hours, and kitchen closures.
             </p>
           </div>
         </Card>
