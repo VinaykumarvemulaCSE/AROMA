@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { googleAuthErrorMessage, signInWithGoogle, syncFirebaseUser } from "@/lib/auth/google";
+import { googleAuthErrorMessage, signInWithGoogle, syncFirebaseUser, completeGoogleRedirectSignIn, consumeAuthRedirect } from "@/lib/auth/google";
 
 function LoginForm() {
   const router = useRouter();
@@ -28,6 +28,14 @@ function LoginForm() {
 
   // Auto redirect if already signed in
   useEffect(() => {
+    // Handle Google redirect sign-in result when this page loads after redirect
+    (async () => {
+      const completed = await completeGoogleRedirectSignIn();
+      if (completed) {
+        // Use stored redirect or fallback to profile
+        router.push(consumeAuthRedirect('/profile'));
+      }
+    })();
     if (initialized && user) {
       if (redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")) {
         router.push(redirectTo);
