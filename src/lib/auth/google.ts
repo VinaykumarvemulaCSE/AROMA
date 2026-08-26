@@ -57,28 +57,9 @@ function isMobileBrowser() {
 export async function signInWithGoogle(options?: { redirectTo?: string }) {
   const redirectTo = options?.redirectTo ?? "/profile";
   stashAuthRedirect(redirectTo);
-
-  // Mobile browsers often block popups — use redirect directly
-  if (isMobileBrowser()) {
-    await signInWithRedirect(auth, googleProvider);
-    return { method: "redirect" as const };
-  }
-
-  try {
-    const cred = await signInWithPopup(auth, googleProvider);
-    const mappedUser = await syncFirebaseUser(cred.user);
-    sessionStorage.removeItem(AUTH_REDIRECT_KEY);
-    return { method: "popup" as const, user: cred.user, mappedUser };
-  } catch (err: unknown) {
-    const code = err && typeof err === "object" && "code" in err ? String(err.code) : "";
-
-    if (isPopupBlockedError(code) && code !== "auth/popup-closed-by-user") {
-      await signInWithRedirect(auth, googleProvider);
-      return { method: "redirect" as const };
-    }
-
-    throw err;
-  }
+  // Always use redirect flow – avoids COOP‑blocked pop‑ups
+  await signInWithRedirect(auth, googleProvider);
+  return { method: "redirect" as const };
 }
 
 /** Call once on app boot to finish Google redirect sign-in. */
