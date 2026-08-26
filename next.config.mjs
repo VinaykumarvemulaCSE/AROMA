@@ -1,5 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async headers() {
+    return [
+      {
+        // Apply to all routes
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin-allow-popups',
+          },
+        ],
+      },
+    ];
+  },
   serverExternalPackages: ["firebase-admin"],
   experimental: {
     serverActions: {
@@ -26,6 +40,7 @@ const nextConfig = {
       },
     ],
   },
+  // Ensure the closing brace is after the headers function
 };
 
 export default nextConfig;
