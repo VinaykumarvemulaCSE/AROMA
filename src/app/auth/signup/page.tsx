@@ -108,11 +108,16 @@ function SignupForm() {
   const handleGoogle = async () => {
     setLoading(true);
     try {
-      // Initiate Google sign‑in; redirect flow will handle the rest.
-      await signInWithGoogle({
+      const result = await signInWithGoogle({
         redirectTo: redirectTo ?? "/profile",
       });
-      // No further action needed; after redirect the user will be signed in.
+      if (result.method === "redirect") {
+        // Redirect flow will finish later.
+        return;
+      }
+      // Popup succeeded – show welcome toast and navigate.
+      toast.success(`Welcome, ${result.mappedUser.name}! 🎉`);
+      goAfterSignup();
     } catch (err: unknown) {
       const code = err && typeof err === "object" && "code" in err ? String(err.code) : "";
       if (code !== "auth/popup-closed-by-user") {
