@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Allow Google popup to close safely
+
   async headers() {
     return [
       {
@@ -40,7 +42,6 @@ const nextConfig = {
       },
     ],
   },
-  // Ensure the closing brace is after the headers function
 };
 
 export default nextConfig;

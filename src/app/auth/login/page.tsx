@@ -91,12 +91,11 @@ function LoginForm() {
   const handleGoogle = async () => {
     setLoading(true);
     try {
-      const result = await signInWithGoogle({
+      // Initiate Google sign-in. The redirect flow will handle the rest.
+      await signInWithGoogle({
         redirectTo: redirectTo ?? "/profile",
       });
-      if (result.method === "redirect") return;
-      toast.success(`Welcome, ${result.mappedUser?.name || result.user.displayName || "there"}!`);
-      goAfterLogin();
+      // No further action needed; after redirect the user will be signed in.
     } catch (err: unknown) {
       const code = err && typeof err === "object" && "code" in err ? String(err.code) : "";
       if (code !== "auth/popup-closed-by-user") {
