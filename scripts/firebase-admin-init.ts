@@ -64,7 +64,9 @@ export function initFirebaseAdminForScripts(): App {
     console.error("Provide one of:");
     console.error("  • serviceAccountKey.json in project root");
     console.error("  • FIREBASE_SERVICE_ACCOUNT_BASE64 in .env");
-    console.error("  • FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY in .env\n");
+    console.error(
+      "  • FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY in .env\n",
+    );
     process.exit(1);
   }
 

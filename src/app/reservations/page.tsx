@@ -27,7 +27,7 @@ const occasions = [
 export default function Reservations() {
   const user = useAuth((s) => s.user);
   const setUser = useAuth((s) => s.setUser);
-  
+
   const settings = useSettings((s) => s.settings);
   const fetchSettings = useSettings((s) => s.fetchSettings);
 
@@ -69,7 +69,7 @@ export default function Reservations() {
     try {
       const [openH, openM] = dayHours.open.split(":").map(Number);
       const [closeH, closeM] = dayHours.close.split(":").map(Number);
-      
+
       let currentH = openH;
       let currentM = openM >= 30 ? 30 : 0;
       if (openM > 0 && openM < 30) {
@@ -78,12 +78,14 @@ export default function Reservations() {
         currentH += 1;
         currentM = 0;
       }
-      
+
       const maxH = closeM === 0 ? closeH - 1 : closeH;
-      const maxM = closeM === 0 ? 0 : (closeM >= 30 ? 30 : 0);
-      
+      const maxM = closeM === 0 ? 0 : closeM >= 30 ? 30 : 0;
+
       while (currentH < maxH || (currentH === maxH && currentM <= maxM)) {
-        slots.push(`${currentH.toString().padStart(2, "0")}:${currentM.toString().padStart(2, "0")}`);
+        slots.push(
+          `${currentH.toString().padStart(2, "0")}:${currentM.toString().padStart(2, "0")}`,
+        );
         currentM += 30;
         if (currentM >= 60) {
           currentH += 1;
@@ -253,7 +255,9 @@ export default function Reservations() {
               <Input
                 type="date"
                 min={new Date().toISOString().slice(0, 10)}
-                max={new Date(Date.now() + bookingWindowDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
+                max={new Date(Date.now() + bookingWindowDays * 24 * 60 * 60 * 1000)
+                  .toISOString()
+                  .slice(0, 10)}
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
               />
@@ -315,7 +319,9 @@ export default function Reservations() {
           <Field label="Phone" required>
             <Input
               value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+              onChange={(e) =>
+                setForm({ ...form, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })
+              }
               maxLength={10}
               placeholder="10-digit mobile number"
               required

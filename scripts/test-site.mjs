@@ -174,9 +174,7 @@ async function main() {
 
   console.log("\n── Config ──");
   console.log(`✅ ADMIN_EMAIL=${ADMIN_EMAIL}`);
-    pageFails +
-    (auth.adminClaim ? 0 : auth.ok ? 1 : 0) +
-    (publicRead.ok ? 0 : 1);
+  pageFails + (auth.adminClaim ? 0 : auth.ok ? 1 : 0) + (publicRead.ok ? 0 : 1);
 
   console.log(
     `\n${totalFails === 0 ? "✅ All checks passed" : `❌ ${totalFails} check(s) failed`}\n`,

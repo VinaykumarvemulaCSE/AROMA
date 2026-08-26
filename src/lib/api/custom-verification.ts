@@ -1,10 +1,7 @@
 "use server";
 import { z } from "zod";
 import { getAdminAuth } from "../firebase-admin.server";
-import {
-  assertEmailSent,
-  sendVerificationEmailInternal,
-} from "../email.server";
+import { assertEmailSent, sendVerificationEmailInternal } from "../email.server";
 import { assertProductionSecrets, getAppUrl } from "../config.server";
 import { rateLimit } from "./rate-limit.server";
 
@@ -26,10 +23,7 @@ export const sendCustomVerificationEmail = async (rawData: unknown) => {
       handleCodeInApp: true,
     };
 
-    const link = await auth.generateEmailVerificationLink(
-      data.email,
-      actionCodeSettings,
-    );
+    const link = await auth.generateEmailVerificationLink(data.email, actionCodeSettings);
 
     const result = await sendVerificationEmailInternal({
       email: data.email,

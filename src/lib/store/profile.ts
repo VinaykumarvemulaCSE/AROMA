@@ -22,10 +22,7 @@ const defaultNotifications = { email: true, sms: true, promo: false };
 /**
  * Save user profile to Firestore and update the Zustand auth store.
  */
-export async function saveUserProfile(
-  uid: string,
-  profile: Partial<UserProfile>,
-) {
+export async function saveUserProfile(uid: string, profile: Partial<UserProfile>) {
   const ref = doc(db, "users", uid);
   await setDoc(ref, { ...profile, updatedAt: Date.now() }, { merge: true });
 

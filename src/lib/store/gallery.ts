@@ -21,6 +21,23 @@ type GalleryState = {
   deleteImage: (id: string) => Promise<void>;
 };
 
+export function extractCloudinaryPublicId(url: string): string | undefined {
+  if (!url || !url.includes("cloudinary.com")) return undefined;
+  try {
+    const uploadIndex = url.indexOf("/upload/");
+    if (uploadIndex === -1) return undefined;
+    const pathAfterUpload = url.substring(uploadIndex + 8);
+    const pathNoVersion = pathAfterUpload.replace(/^v\d+\//, "");
+    const lastDotIndex = pathNoVersion.lastIndexOf(".");
+    if (lastDotIndex !== -1) {
+      return pathNoVersion.substring(0, lastDotIndex);
+    }
+    return pathNoVersion;
+  } catch {
+    return undefined;
+  }
+}
+
 export const useGallery = create<GalleryState>()((set, get) => ({
   images: [],
   loading: false,
@@ -61,18 +78,26 @@ export const useGallery = create<GalleryState>()((set, get) => ({
   deleteImage: async (id) => {
     try {
       const image = get().images.find((img) => img.id === id);
-      if (image?.publicId) {
-        const { auth } = await import("../firebase");
-        const idToken = await auth.currentUser?.getIdToken();
-        if (idToken) {
-          const { secureDeleteImage } = await import("../api/cloudinary");
-          await secureDeleteImage({ idToken, publicId: image.publicId });
+      const publicId =
+        image?.publicId || (image?.url ? extractCloudinaryPublicId(image.url) : undefined);
+
+      if (publicId) {
+        try {
+          const { auth } = await import("../firebase");
+          const idToken = await auth.currentUser?.getIdToken();
+          if (idToken) {
+            const { secureDeleteImage } = await import("../api/cloudinary");
+            await secureDeleteImage({ idToken, publicId });
+          }
+        } catch (cloudErr) {
+          console.warn("Cloudinary delete failed, proceeding with Firestore deletion:", cloudErr);
         }
       }
 
       await deleteDoc(doc(db, "gallery", id));
-      // Re-fetch images to maintain correct order and state consistency
-      await get().fetchImages();
+      set((state) => ({
+        images: state.images.filter((img) => img.id !== id),
+      }));
     } catch (e) {
       console.error("Failed to delete gallery image", e);
       throw e;

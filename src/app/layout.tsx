@@ -14,6 +14,12 @@ export const metadata: Metadata = {
   title: "Aroma Cafe & Restaurant — Nalgonda",
   description:
     "Specialty coffee, fresh-baked goods and fine dining in the heart of Nalgonda. Order online or reserve a table.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Aroma Cafe",
+  },
   openGraph: {
     title: "Aroma Cafe & Restaurant — Nalgonda",
     description: "Specialty coffee, fresh-baked goods and fine dining in Nalgonda.",
@@ -30,7 +36,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${poppins.variable}`}>
       <body>
         <Providers>{children}</Providers>
       </body>

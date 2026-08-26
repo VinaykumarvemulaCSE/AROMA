@@ -17,7 +17,10 @@ export function parseSafe<T extends z.ZodTypeAny>(schema: T, rawData: unknown): 
  */
 export function formatZodError(e: unknown): string {
   if (e instanceof z.ZodError) {
-    return "Validation failed: " + e.errors.map((err) => `${err.path.join(".") || "field"}: ${err.message}`).join("; ");
+    return (
+      "Validation failed: " +
+      e.errors.map((err) => `${err.path.join(".") || "field"}: ${err.message}`).join("; ")
+    );
   }
   return e instanceof Error ? e.message : String(e);
 }

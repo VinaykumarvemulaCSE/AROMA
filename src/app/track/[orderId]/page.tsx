@@ -11,15 +11,21 @@ import {
   Phone,
   MessageCircle,
   Download,
+  Printer,
   AlertCircle,
+  Star,
 } from "lucide-react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { inr } from "@/lib/format";
+import { useReviews } from "@/lib/store/reviews";
+import { toast } from "sonner";
 import { useSettings } from "@/lib/store/settings";
-import { downloadBill } from "@/lib/bill";
+import { printOrderInvoice } from "@/lib/print-invoice";
+import { haptic } from "@/lib/haptics";
 import { useAuth } from "@/lib/store/auth";
 import { useOrders, type Order, type OrderStatus } from "@/lib/store/orders";
 import { getOrderForTracking } from "@/lib/api/orders";
@@ -75,13 +81,20 @@ function TrackPageContent() {
   const listenToOrder = useOrders((s) => s.listenToOrder);
   const settings = useSettings((s) => s.settings);
   const fetchSettings = useSettings((s) => s.fetchSettings);
-  
+
   const [trackedOrder, setTrackedOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsPhone, setNeedsPhone] = useState(false);
   const [phoneInput, setPhoneInput] = useState("");
   const [trackError, setTrackError] = useState<string | null>(null);
   const [pendingWaUrl, setPendingWaUrl] = useState<string | null>(null);
+
+  // Review states
+  const addReview = useReviews((s) => s.addReview);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
   useEffect(() => {
     setPendingWaUrl(sessionStorage.getItem(WA_PENDING_KEY(orderId)));
@@ -134,7 +147,7 @@ function TrackPageContent() {
     let resolved = false;
     let unsub: (() => void) | undefined;
     let pollInterval: ReturnType<typeof setInterval> | undefined;
-    
+
     const timeoutId = setTimeout(
       () => {
         if (resolved) return;
@@ -192,20 +205,23 @@ function TrackPageContent() {
   const whatsAppUrl = useMemo(() => {
     if (pendingWaUrl) return pendingWaUrl;
     if (!order) return null;
-    return buildOrderWhatsAppUrl({
-      id: order.id,
-      items: order.items,
-      subtotal: order.subtotal,
-      tax: order.tax,
-      delivery: order.delivery,
-      discount: order.discount,
-      couponCode: order.couponCode,
-      total: order.total,
-      addr: order.addr,
-      contact: order.contact,
-      createdAt: order.createdAt,
-      status: order.status,
-    }, settings?.whatsapp);
+    return buildOrderWhatsAppUrl(
+      {
+        id: order.id,
+        items: order.items,
+        subtotal: order.subtotal,
+        tax: order.tax,
+        delivery: order.delivery,
+        discount: order.discount,
+        couponCode: order.couponCode,
+        total: order.total,
+        addr: order.addr,
+        contact: order.contact,
+        createdAt: order.createdAt,
+        status: order.status,
+      },
+      settings?.whatsapp,
+    );
   }, [pendingWaUrl, order, settings?.whatsapp]);
 
   const showWhatsAppFallback = Boolean(whatsAppUrl && (waSearch === 1 || pendingWaUrl));
@@ -300,6 +316,73 @@ function TrackPageContent() {
           )}
         </div>
 
+        {isDelivered && !reviewSubmitted && (
+          <div className="mt-4 p-6 bg-card border border-border rounded-2xl text-center shadow-sm animate-fadeIn">
+            <h3 className="font-display font-semibold text-lg">How was your meal?</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Share your feedback to help us improve.
+            </p>
+            <div className="flex justify-center gap-1.5 mt-4">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => setRating(star)}
+                  className="hover:scale-110 active:scale-95 transition-transform"
+                >
+                  <Star
+                    className={`size-8 ${
+                      star <= rating
+                        ? "fill-amber-500 text-amber-500"
+                        : "text-muted-foreground/30 hover:text-amber-500/50"
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+            {rating > 0 && (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setSubmittingReview(true);
+                  try {
+                    await addReview({
+                      name: order.contact.name,
+                      rating,
+                      title: `Feedback on Order #${order.id}`,
+                      body: comment || "Loved the food!",
+                    });
+                    setReviewSubmitted(true);
+                    toast.success("Review submitted! Thank you. ❤️");
+                  } catch (err) {
+                    toast.error("Failed to submit review.");
+                  } finally {
+                    setSubmittingReview(false);
+                  }
+                }}
+                className="mt-4 space-y-3 animate-slideDown"
+              >
+                <Textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Leave a comment (optional)..."
+                  rows={3}
+                  className="text-sm"
+                />
+                <Button type="submit" disabled={submittingReview} className="w-full sm:w-auto">
+                  {submittingReview ? "Submitting..." : "Submit Review"}
+                </Button>
+              </form>
+            )}
+          </div>
+        )}
+
+        {isDelivered && reviewSubmitted && (
+          <div className="mt-4 p-5 bg-green-50 border border-green-200 text-green-800 rounded-2xl text-center animate-fadeIn">
+            <p className="font-semibold text-sm">Review Submitted! 🎉</p>
+            <p className="text-xs mt-0.5">Thank you for sharing your experience with Aroma Cafe.</p>
+          </div>
+        )}
+
         {showWhatsAppFallback && whatsAppUrl && order.status === "Pending" && (
           <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-2xl text-sm flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="flex-1">
@@ -346,9 +429,12 @@ function TrackPageContent() {
                         done
                           ? "bg-primary text-primary-foreground"
                           : "bg-secondary text-muted-foreground"
-                      } ${active ? "ring-4 ring-primary/20 scale-110" : ""}`}
+                      } ${active ? "ring-4 ring-primary/30 animate-pulse scale-110" : ""}`}
                     >
                       <Icon className="size-4" />
+                      {active && (
+                        <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping -z-10" />
+                      )}
                     </span>
                     <div className="pt-1">
                       <p className={`font-medium ${done ? "" : "text-muted-foreground"}`}>
@@ -371,7 +457,11 @@ function TrackPageContent() {
               <Phone className="size-4 mr-2" /> Call restaurant
             </Button>
           </a>
-          <a href={`https://wa.me/${formatWhatsAppNumber(settings?.whatsapp || "")}`} target="_blank" rel="noreferrer">
+          <a
+            href={`https://wa.me/${formatWhatsAppNumber(settings?.whatsapp || "")}`}
+            target="_blank"
+            rel="noreferrer"
+          >
             <Button className="w-full">
               <MessageCircle className="size-4 mr-2" /> Chat on WhatsApp
             </Button>
@@ -414,14 +504,14 @@ function TrackPageContent() {
               <span>{inr(order.total)}</span>
             </div>
           </div>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Delivering to {order.addr.line1}, {order.addr.city} {order.addr.pin}
-          </p>
           <Button
             className="mt-4 w-full"
-            onClick={() => downloadBill(order as Parameters<typeof downloadBill>[0])}
+            onClick={() => {
+              haptic("medium");
+              printOrderInvoice(order, settings);
+            }}
           >
-            <Download className="size-4 mr-2" /> Download bill
+            <Printer className="size-4 mr-2" /> Download / Print Tax Invoice
           </Button>
         </div>
       </section>

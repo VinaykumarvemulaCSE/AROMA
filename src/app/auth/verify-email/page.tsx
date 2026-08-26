@@ -82,17 +82,18 @@ export default function VerifyEmailPage() {
             <div className="text-6xl mb-4">📧</div>
             <h1 className="text-2xl font-bold mb-2">Verify Your Email</h1>
             <p className="text-muted-foreground mb-6">
-              We've sent a verification link to <strong>{user?.email}</strong>. Please check your inbox and click the link to complete your registration.
+              We've sent a verification link to <strong>{user?.email}</strong>. Please check your
+              inbox and click the link to complete your registration.
             </p>
             <div className="space-y-3">
               <Button onClick={handleCheck} disabled={loading} className="w-full" size="lg">
                 {loading ? "Checking..." : "I've verified my email"}
               </Button>
-              <Button 
-                onClick={handleResend} 
-                disabled={resending} 
-                variant="outline" 
-                className="w-full" 
+              <Button
+                onClick={handleResend}
+                disabled={resending}
+                variant="outline"
+                className="w-full"
                 size="lg"
               >
                 {resending ? "Sending..." : "Resend verification email"}
@@ -102,7 +103,8 @@ export default function VerifyEmailPage() {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-6">
-              If you don't see the email, check your spam folder or make sure you entered the correct email address.
+              If you don't see the email, check your spam folder or make sure you entered the
+              correct email address.
             </p>
           </div>
         </div>

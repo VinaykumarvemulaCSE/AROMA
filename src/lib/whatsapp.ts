@@ -91,7 +91,11 @@ export function buildOrderWhatsAppUrl(o: WAOrder, whatsappNumber?: string) {
 }
 
 /** Open WhatsApp in a tab pre-opened synchronously on user click (avoids popup blockers). */
-export function openWhatsAppInTab(tab: Window | null, o: WAOrder, whatsappNumber?: string): boolean {
+export function openWhatsAppInTab(
+  tab: Window | null,
+  o: WAOrder,
+  whatsappNumber?: string,
+): boolean {
   const url = buildOrderWhatsAppUrl(o, whatsappNumber);
   if (tab && !tab.closed) {
     tab.location.href = url;

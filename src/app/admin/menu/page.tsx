@@ -1,7 +1,22 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Plus, Pencil, Trash2, Search, Upload, ImagePlus, Loader2 } from "lucide-react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  Upload,
+  ImagePlus,
+  Loader2,
+  Download,
+  CheckSquare,
+  Square,
+  X,
+  Layers,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +30,7 @@ import { useSettings } from "@/lib/store/settings";
 import { auth } from "@/lib/firebase";
 import { inr } from "@/lib/format";
 import { secureUploadImage } from "@/lib/api/cloudinary";
+import { exportMenuToCSV } from "@/lib/export";
 import { toast } from "sonner";
 
 export default function AdminMenu() {
@@ -26,33 +42,182 @@ export default function AdminMenu() {
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<MenuItem | null>(null);
   const [creating, setCreating] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  const filtered = items.filter((i) => !q || i.name.toLowerCase().includes(q.toLowerCase()));
+  const settings = useSettings((s) => s.settings);
+  const fetchSettings = useSettings((s) => s.fetchSettings);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  const menuCategories = settings?.categories || categories;
+
+  const filtered = useMemo(() => {
+    return items.filter((i) => {
+      const matchQ =
+        !q ||
+        i.name.toLowerCase().includes(q.toLowerCase()) ||
+        i.description.toLowerCase().includes(q.toLowerCase());
+      const matchCat = selectedCategory === "All" || i.category === selectedCategory;
+      return matchQ && matchCat;
+    });
+  }, [items, q, selectedCategory]);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filtered.length && filtered.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filtered.map((i) => i.id));
+    }
+  };
+
+  // Bulk actions
+  const handleBulkAvailability = async (available: boolean) => {
+    if (selectedIds.length === 0) return;
+    for (const id of selectedIds) {
+      const item = items.find((i) => i.id === id);
+      if (item) {
+        await updateMenuItem(id, { ...item, available });
+      }
+    }
+    toast.success(
+      `Marked ${selectedIds.length} dishes as ${available ? "Available" : "Hidden"}`,
+    );
+    setSelectedIds([]);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedIds.length} dishes?`)) return;
+    for (const id of selectedIds) {
+      await removeMenuItem(id);
+    }
+    toast.success(`Deleted ${selectedIds.length} dishes`);
+    setSelectedIds([]);
+  };
+
+  const handleBulkExport = () => {
+    const targetItems =
+      selectedIds.length > 0 ? items.filter((i) => selectedIds.includes(i.id)) : filtered;
+    exportMenuToCSV(targetItems, "aroma_menu_catalog");
+    toast.success(`Exported ${targetItems.length} menu items to CSV`);
+  };
 
   return (
     <AdminLayout>
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-3xl font-display font-bold">Menu management</h1>
-        <Button onClick={() => setCreating(true)}>
-          <Plus className="size-4 mr-2" /> Add item
-        </Button>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-display font-bold">Menu Management</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm">
+            {items.length} total dishes & beverages in catalog
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleBulkExport}>
+            <Download className="size-4 mr-1.5" /> Export {selectedIds.length ? `Selected (${selectedIds.length})` : "All"} CSV
+          </Button>
+          <Button size="sm" onClick={() => setCreating(true)}>
+            <Plus className="size-4 mr-1.5" /> Add New Dish
+          </Button>
+        </div>
       </div>
 
-      <div className="mt-5 flex items-center bg-card rounded-md border border-border px-3 w-72">
-        <Search className="size-4 text-muted-foreground" />
-        <Input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search dishes"
-          className="border-0 focus-visible:ring-0"
-        />
+      {/* Filter & Search Bar */}
+      <div className="mt-5 flex flex-wrap gap-2 items-center justify-between">
+        <div className="flex flex-wrap gap-2 items-center w-full sm:w-auto">
+          <div className="flex items-center bg-card rounded-md border border-border px-3 w-full sm:w-64">
+            <Search className="size-4 text-muted-foreground" />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search dishes..."
+              className="border-0 focus-visible:ring-0"
+            />
+          </div>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="h-9 rounded-md border border-border bg-card px-3 text-sm"
+          >
+            <option value="All">All Categories</option>
+            {menuCategories.map((c) => (
+              <option key={c.name} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      <div className="mt-5 bg-card border border-border rounded-2xl overflow-x-auto">
-        <table className="w-full text-sm min-w-[680px]">
+      {/* Floating Bulk Operations Toolbar */}
+      {selectedIds.length > 0 && (
+        <div className="sticky top-20 z-30 my-4 bg-primary text-primary-foreground p-3.5 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-2">
+            <Layers className="size-5" />
+            <span className="font-semibold text-sm">
+              {selectedIds.length} {selectedIds.length === 1 ? "dish" : "dishes"} selected
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-8 text-xs font-semibold"
+              onClick={() => handleBulkAvailability(true)}
+            >
+              <Eye className="size-3.5 mr-1" /> Mark Available
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-8 text-xs font-semibold"
+              onClick={() => handleBulkAvailability(false)}
+            >
+              <EyeOff className="size-3.5 mr-1" /> Hide Dishes
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              className="h-8 text-xs font-semibold"
+              onClick={handleBulkDelete}
+            >
+              <Trash2 className="size-3.5 mr-1" /> Delete Selected
+            </Button>
+            <button
+              onClick={() => setSelectedIds([])}
+              className="p-1.5 hover:bg-primary-foreground/10 rounded-lg text-primary-foreground transition-colors"
+              title="Clear selection"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Menu Table */}
+      <div className="mt-5 bg-card border border-border rounded-2xl overflow-x-auto shadow-xs">
+        <table className="w-full text-sm min-w-[720px]">
           <thead className="bg-secondary/60 text-muted-foreground text-xs uppercase tracking-wider">
             <tr>
-              {["Item", "Category", "Price", "Status", ""].map((h) => (
+              <th className="px-4 py-3 w-10">
+                <button onClick={toggleSelectAll} className="grid place-items-center">
+                  {selectedIds.length === filtered.length && filtered.length > 0 ? (
+                    <CheckSquare className="size-4 text-primary" />
+                  ) : (
+                    <Square className="size-4 text-muted-foreground" />
+                  )}
+                </button>
+              </th>
+              {["Item", "Category", "Price", "Prep Time", "Status", "Actions"].map((h) => (
                 <th key={h} className="text-left px-4 py-3 font-medium">
                   {h}
                 </th>
@@ -60,50 +225,90 @@ export default function AdminMenu() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((i) => (
-              <tr
-                key={i.id}
-                className="border-t border-border hover:bg-secondary/20 transition-colors"
-              >
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={i.image}
-                      className="size-10 rounded-lg object-cover shrink-0"
-                      alt=""
-                    />
-                    <div className="min-w-0">
-                      <p className="font-medium">{i.name}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-1">{i.description}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">{i.category}</td>
-                <td className="px-4 py-3 font-semibold">{inr(i.price)}</td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full ${i.available ? "bg-sage/20 text-sage" : "bg-destructive/10 text-destructive"}`}
-                  >
-                    {i.available ? "Active" : "Hidden"}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-right whitespace-nowrap">
-                  <Button size="icon" variant="ghost" onClick={() => setEditing(i)}>
-                    <Pencil className="size-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={async () => {
-                      await removeMenuItem(i.id);
-                      toast.success("Deleted");
-                    }}
-                  >
-                    <Trash2 className="size-4 text-destructive" />
-                  </Button>
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
+                  No dishes found matching your search.
                 </td>
               </tr>
-            ))}
+            )}
+            {filtered.map((i) => {
+              const isSelected = selectedIds.includes(i.id);
+              return (
+                <tr
+                  key={i.id}
+                  className={`border-t border-border transition-colors ${
+                    isSelected ? "bg-primary/5" : "hover:bg-secondary/20"
+                  }`}
+                >
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => toggleSelect(i.id)}
+                      className="grid place-items-center"
+                    >
+                      {isSelected ? (
+                        <CheckSquare className="size-4 text-primary" />
+                      ) : (
+                        <Square className="size-4 text-muted-foreground" />
+                      )}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={i.image}
+                        className="size-10 rounded-lg object-cover shrink-0"
+                        alt=""
+                      />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`inline-block size-2 rounded-full ${i.veg ? "bg-green-600" : "bg-red-600"}`}
+                          />
+                          <p className="font-medium truncate">{i.name}</p>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                          {i.description}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">{i.category}</td>
+                  <td className="px-4 py-3 font-semibold">{inr(i.price)}</td>
+                  <td className="px-4 py-3 text-muted-foreground text-xs">{i.prepTime} min</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
+                        i.available
+                          ? "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-300"
+                          : "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300"
+                      }`}
+                    >
+                      {i.available ? "Active" : "Hidden"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <div className="flex items-center gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => setEditing(i)}>
+                        <Pencil className="size-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={async () => {
+                          if (confirm(`Delete "${i.name}" from menu?`)) {
+                            await removeMenuItem(i.id);
+                            toast.success("Deleted dish");
+                          }
+                        }}
+                      >
+                        <Trash2 className="size-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -118,7 +323,7 @@ export default function AdminMenu() {
         onSave={async (it) => {
           if (editing) await updateMenuItem(it.id, it);
           else await addMenuItem(it);
-          toast.success("Saved");
+          toast.success("Saved dish");
           setEditing(null);
           setCreating(false);
         }}
@@ -161,7 +366,6 @@ function ItemFormDialog({
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Sync form state whenever the item prop changes (edit vs create)
   useEffect(() => {
     if (item) {
       setF({ ...item, isDailySpecial: !!item.isDailySpecial, isBestseller: !!item.isBestseller });
@@ -195,9 +399,9 @@ function ItemFormDialog({
 
   const menuCategories = settings?.categories || categories;
 
-  // Sync form state when item prop changes (switching between edit/create)
   const handleOpen = () => {
-    if (item) setF({ ...item, isDailySpecial: !!item.isDailySpecial, isBestseller: !!item.isBestseller });
+    if (item)
+      setF({ ...item, isDailySpecial: !!item.isDailySpecial, isBestseller: !!item.isBestseller });
     else
       setF({
         id: "",
@@ -269,7 +473,7 @@ function ItemFormDialog({
     >
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{item ? "Edit item" : "Add new item"}</DialogTitle>
+          <DialogTitle>{item ? "Edit Dish" : "Add New Dish"}</DialogTitle>
         </DialogHeader>
         <form
           onSubmit={(e) => {
@@ -294,7 +498,6 @@ function ItemFormDialog({
               )}
 
               <div className="flex gap-2">
-                {/* Cloudinary upload button */}
                 <Button
                   type="button"
                   variant="outline"
@@ -321,7 +524,6 @@ function ItemFormDialog({
                   onChange={handleFileChange}
                 />
 
-                {/* Manual URL button */}
                 <Button
                   type="button"
                   variant="ghost"
@@ -414,11 +616,17 @@ function ItemFormDialog({
               Available
             </label>
             <label className="flex items-center gap-2 text-sm font-medium">
-              <Switch checked={!!f.isDailySpecial} onCheckedChange={(v) => setF({ ...f, isDailySpecial: v })} />{" "}
+              <Switch
+                checked={!!f.isDailySpecial}
+                onCheckedChange={(v) => setF({ ...f, isDailySpecial: v })}
+              />{" "}
               Daily Special
             </label>
             <label className="flex items-center gap-2 text-sm font-medium">
-              <Switch checked={!!f.isBestseller} onCheckedChange={(v) => setF({ ...f, isBestseller: v })} />{" "}
+              <Switch
+                checked={!!f.isBestseller}
+                onCheckedChange={(v) => setF({ ...f, isBestseller: v })}
+              />{" "}
               Bestseller
             </label>
           </div>

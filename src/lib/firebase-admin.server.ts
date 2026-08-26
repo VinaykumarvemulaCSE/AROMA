@@ -47,9 +47,7 @@ async function getApp(): Promise<App> {
       try {
         if (hasFirebaseAdminCredentials()) {
           _app = initializeApp({
-            credential: cert(
-              loadFirebaseServiceAccount() as Parameters<typeof cert>[0],
-            ),
+            credential: cert(loadFirebaseServiceAccount() as Parameters<typeof cert>[0]),
           });
         } else if (!isProductionRuntime()) {
           // Local ADC / emulator fallback only — never in production

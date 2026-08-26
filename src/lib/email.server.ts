@@ -39,11 +39,7 @@ async function getTransporter() {
       "SMTP credentials missing in .env. Email sending will be logged to console instead.",
     );
     return {
-      sendMail: async (options: {
-        to?: string;
-        subject?: string;
-        html?: string;
-      }) => {
+      sendMail: async (options: { to?: string; subject?: string; html?: string }) => {
         console.log("--- MOCK EMAIL SENT ---");
         console.log(`To: ${options.to}`);
         console.log(`Subject: ${options.subject}`);
@@ -329,49 +325,52 @@ export async function sendOrderStatusEmailInternal(data: {
   const fromAddress = process.env.SMTP_FROM || "no-reply@aromacafe.in";
 
   const statusMessages: Record<string, { title: string; message: string; icon: string }> = {
-    "Pending": {
+    Pending: {
       title: "Order Received",
       message: "We've received your order and it's pending confirmation from our team.",
-      icon: "📋"
+      icon: "📋",
     },
-    "Confirmed": {
+    Confirmed: {
       title: "Order Confirmed",
       message: "Great news! Your order has been confirmed and is now being prepared.",
-      icon: "✅"
+      icon: "✅",
     },
-    "Preparing": {
+    Preparing: {
       title: "Order Being Prepared",
       message: "Our chefs are working on your delicious order right now.",
-      icon: "👨‍🍳"
+      icon: "👨‍🍳",
     },
-    "Ready": {
+    Ready: {
       title: "Order Ready for Pickup/Delivery",
       message: "Your order is ready! It will be delivered to you shortly.",
-      icon: "🍕"
+      icon: "🍕",
     },
     "Out for Delivery": {
       title: "Order Out for Delivery",
       message: "Your order is on its way to you!",
-      icon: "🚚"
+      icon: "🚚",
     },
-    "Delivered": {
+    Delivered: {
       title: "Order Delivered",
       message: "Your order has been delivered. Enjoy your meal!",
-      icon: "🎉"
+      icon: "🎉",
     },
-    "Cancelled": {
+    Cancelled: {
       title: "Order Cancelled",
       message: "Your order has been cancelled. If you didn't request this, please contact us.",
-      icon: "❌"
-    }
+      icon: "❌",
+    },
   };
 
   const statusInfo = statusMessages[data.status] || statusMessages["Pending"];
-  const itemsList = data.items.map(item => 
-    `<li style="padding: 4px 0; border-bottom: 1px solid #f0f0f0;">
+  const itemsList = data.items
+    .map(
+      (item) =>
+        `<li style="padding: 4px 0; border-bottom: 1px solid #f0f0f0;">
       <span style="font-weight: 500;">${item.name}</span> × ${item.qty} - ${inrFormat(item.price * item.qty)}
-    </li>`
-  ).join("");
+    </li>`,
+    )
+    .join("");
 
   const htmlContent = `
     <div style="font-family: 'Inter', system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 16px; background: #fff; color: #1a202c;">
@@ -487,26 +486,27 @@ export async function sendReservationStatusEmailInternal(data: {
   const fromAddress = process.env.SMTP_FROM || "no-reply@aromacafe.in";
 
   const statusMessages: Record<string, { title: string; message: string; icon: string }> = {
-    "Pending": {
+    Pending: {
       title: "Reservation Request Received",
       message: "We've received your reservation request and it's pending confirmation.",
-      icon: "📋"
+      icon: "📋",
     },
-    "Confirmed": {
+    Confirmed: {
       title: "Reservation Confirmed",
       message: "Great news! Your table reservation has been confirmed.",
-      icon: "✅"
+      icon: "✅",
     },
-    "Cancelled": {
+    Cancelled: {
       title: "Reservation Cancelled",
-      message: "Your reservation has been cancelled. If you didn't request this, please contact us.",
-      icon: "❌"
+      message:
+        "Your reservation has been cancelled. If you didn't request this, please contact us.",
+      icon: "❌",
     },
-    "Completed": {
+    Completed: {
       title: "Reservation Completed",
       message: "Thank you for dining with us! We hope you enjoyed your experience.",
-      icon: "🎉"
-    }
+      icon: "🎉",
+    },
   };
 
   const statusInfo = statusMessages[data.status] || statusMessages["Pending"];
@@ -569,11 +569,14 @@ export async function sendOrderCancellationEmailInternal(data: {
   const transporter = await getTransporter();
   const fromAddress = process.env.SMTP_FROM || "no-reply@aromacafe.in";
 
-  const itemsList = data.items.map(item => 
-    `<li style="padding: 4px 0; border-bottom: 1px solid #f0f0f0;">
+  const itemsList = data.items
+    .map(
+      (item) =>
+        `<li style="padding: 4px 0; border-bottom: 1px solid #f0f0f0;">
       <span style="font-weight: 500;">${item.name}</span> × ${item.qty} - ${inrFormat(item.price * item.qty)}
-    </li>`
-  ).join("");
+    </li>`,
+    )
+    .join("");
 
   const htmlContent = `
     <div style="font-family: 'Inter', system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 16px; background: #fff; color: #1a202c;">
@@ -683,10 +686,7 @@ export async function sendReviewApprovalEmailInternal(data: {
 }
 
 // 7. Password Reset Email
-export async function sendPasswordResetEmailInternal(data: {
-  email: string;
-  resetLink: string;
-}) {
+export async function sendPasswordResetEmailInternal(data: { email: string; resetLink: string }) {
   const transporter = await getTransporter();
   const fromAddress = process.env.SMTP_FROM || "no-reply@aromacafe.in";
 

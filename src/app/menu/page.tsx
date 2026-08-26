@@ -3,6 +3,8 @@
 import { useMemo, useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Search, X, SlidersHorizontal } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { MenuCard } from "@/components/menu/MenuCard";
 import { Input } from "@/components/ui/input";
@@ -16,6 +18,7 @@ import { useSettings } from "@/lib/store/settings";
 import { inr } from "@/lib/format";
 import { toast } from "sonner";
 import { optimizeImage } from "@/lib/cloudinary-utils";
+import { StoreStatusBadge } from "@/components/store/StoreStatusBadge";
 
 type Diet = "all" | "veg" | "nonveg";
 type Sort = "popular" | "rating" | "price-asc" | "price-desc" | "new";
@@ -23,7 +26,7 @@ type Sort = "popular" | "rating" | "price-asc" | "price-desc" | "new";
 function MenuPageContent() {
   const searchParams = useSearchParams();
   const queryQ = searchParams.get("q") || "";
-  
+
   const [q, setQ] = useState(queryQ);
   const [cat, setCat] = useState<Category | "All">("All");
   const [diet, setDiet] = useState<Diet>("all");
@@ -31,7 +34,7 @@ function MenuPageContent() {
   const [sort, setSort] = useState<Sort>("popular");
   const [openId, setOpenId] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  
+
   const menu = useMenu((s) => s.menu);
   const settings = useSettings((s) => s.settings);
   const fetchSettings = useSettings((s) => s.fetchSettings);
@@ -82,7 +85,7 @@ function MenuPageContent() {
     setPrice([0, 1000]);
     setSort("popular");
   };
-  
+
   const activeFilters: { label: string; clear: () => void }[] = [];
   if (cat !== "All") activeFilters.push({ label: cat, clear: () => setCat("All") });
   if (diet !== "all")
@@ -100,6 +103,9 @@ function MenuPageContent() {
     <SiteLayout>
       <section className="bg-secondary/30 border-b border-border">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+          <div className="mb-3">
+            <StoreStatusBadge />
+          </div>
           <h1 className="text-4xl sm:text-5xl font-display font-bold">Our Menu</h1>
           <p className="mt-2 text-muted-foreground">
             Specialty coffee, hearty meals & sweet endings.
@@ -130,13 +136,17 @@ function MenuPageContent() {
           </div>
 
           {/* Categories chips */}
-          <div className="mt-5 -mx-4 px-4 overflow-x-auto">
+          <div className="mt-5 -mx-4 px-4 overflow-x-auto scrollbar-none snap-x select-none">
             <div className="flex gap-2 min-w-max pb-1">
               <Chip active={cat === "All"} onClick={() => setCat("All")}>
                 All
               </Chip>
               {menuCategories.map((c) => (
-                <Chip key={c.name} active={cat === c.name} onClick={() => setCat(c.name as Category)}>
+                <Chip
+                  key={c.name}
+                  active={cat === c.name}
+                  onClick={() => setCat(c.name as Category)}
+                >
                   <span className="mr-1.5">{c.icon}</span>
                   {c.name}
                 </Chip>
@@ -165,9 +175,13 @@ function MenuPageContent() {
 
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
         <p className="text-sm text-muted-foreground mb-4">
-          {items.length} {items.length === 1 ? "item" : "items"}
+          {menu.length === 0
+            ? "Loading items..."
+            : `${items.length} ${items.length === 1 ? "item" : "items"}`}
         </p>
-        {items.length === 0 ? (
+        {menu.length === 0 ? (
+          <MenuSkeleton />
+        ) : items.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-lg">No dishes match these filters.</p>
             <Button variant="outline" onClick={clearAll} className="mt-4">
@@ -231,10 +245,16 @@ function MenuPageContent() {
 
 export default function MenuPage() {
   return (
-    <Suspense fallback={<SiteLayout><div className="p-10">Loading menu...</div></SiteLayout>}>
+    <Suspense
+      fallback={
+        <SiteLayout>
+          <div className="p-10">Loading menu...</div>
+        </SiteLayout>
+      }
+    >
       <MenuPageContent />
     </Suspense>
-  )
+  );
 }
 
 function Chip({
@@ -249,10 +269,34 @@ function Chip({
   return (
     <button
       onClick={onClick}
-      className={`whitespace-nowrap px-3.5 py-1.5 rounded-full text-sm border transition-colors ${active ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-secondary"}`}
+      className={`whitespace-nowrap px-3.5 py-1.5 rounded-full text-sm border transition-colors snap-start ${active ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-secondary"}`}
     >
       {children}
     </button>
+  );
+}
+
+function MenuSkeleton() {
+  return (
+    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm animate-pulse"
+        >
+          <div className="aspect-[4/3] bg-secondary" />
+          <div className="p-4 space-y-3">
+            <div className="h-5 bg-secondary rounded w-2/3" />
+            <div className="h-3 bg-secondary rounded w-full" />
+            <div className="h-3 bg-secondary rounded w-5/6" />
+            <div className="flex justify-between items-center pt-2">
+              <div className="h-5 bg-secondary rounded w-1/4" />
+              <div className="h-8 bg-secondary rounded-full w-16" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -266,11 +310,13 @@ function ItemDialog({ id, onClose }: { id: string | null; onClose: () => void })
   return (
     <Dialog open={!!id} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl p-0 overflow-hidden">
-        <div className="aspect-[16/9] w-full">
-          <img
+        <div className="relative aspect-[16/9] w-full">
+          <Image
             src={optimizeImage(item.image, 1200)}
             alt={item.name}
-            className="w-full h-full object-cover"
+            fill
+            sizes="(max-width: 768px) 100vw, 672px"
+            className="object-cover"
           />
         </div>
         <div className="p-6">

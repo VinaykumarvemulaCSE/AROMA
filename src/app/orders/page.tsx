@@ -6,13 +6,18 @@ import { SiteLayout } from "@/components/layout/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { inr } from "@/lib/format";
 import { downloadBill } from "@/lib/bill";
+import { printOrderInvoice } from "@/lib/print-invoice";
 import { useAuth } from "@/lib/store/auth";
 import { useOrders } from "@/lib/store/orders";
+import { useSettings } from "@/lib/store/settings";
+import { haptic } from "@/lib/haptics";
+import { Printer } from "lucide-react";
 
 export default function Orders() {
   const user = useAuth((s) => s.user);
   const initialized = useAuth((s) => s.initialized);
   const orders = useOrders((s) => s.orders);
+  const settings = useSettings((s) => s.settings);
 
   if (!initialized) {
     return (
@@ -81,9 +86,17 @@ export default function Orders() {
                 <span className="text-xs px-2 py-1 rounded-full bg-secondary">{o.status}</span>
                 <span className="font-display font-bold">{inr(o.total)}</span>
                 <div className="flex gap-2 ml-auto">
-                  <Button size="sm" variant="outline" onClick={() => downloadBill(o)}>
-                    <Download className="size-4 mr-1.5" />
-                    Bill
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      haptic("light");
+                      printOrderInvoice(o, settings);
+                    }}
+                    title="Print or Save as PDF"
+                  >
+                    <Printer className="size-4 mr-1.5" />
+                    Invoice
                   </Button>
                   <Link href={`/track/${o.id}`}>
                     <Button size="sm">View</Button>

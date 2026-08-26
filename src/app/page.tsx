@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState, useMemo } from "react";
 import {
   Phone,
@@ -23,6 +24,7 @@ import { useReviews } from "@/lib/store/reviews";
 import { reviews as mockReviews } from "@/lib/mock/reviews";
 import { useGallery } from "@/lib/store/gallery";
 import { formatWhatsAppNumber } from "@/lib/whatsapp";
+import { StoreStatusBadge } from "@/components/store/StoreStatusBadge";
 
 const heroSlides = [
   {
@@ -49,7 +51,7 @@ export default function Home() {
   const [slide, setSlide] = useState(0);
   const [q, setQ] = useState("");
   const { images, fetchImages, loading } = useGallery();
-  
+
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
@@ -100,12 +102,13 @@ export default function Home() {
         ))}
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/70" />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-end pb-16 text-white">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="flex items-center gap-1 bg-white/15 backdrop-blur px-3 py-1 rounded-full">
+          <div className="flex flex-wrap items-center gap-2 text-sm mb-1">
+            <StoreStatusBadge />
+            <span className="flex items-center gap-1 bg-white/15 backdrop-blur px-3 py-1 rounded-full text-xs">
               <Star className="size-3.5 fill-gold text-gold" /> {settings?.rating || 4.7} ·{" "}
               {settings?.reviewCount || 1284} reviews
             </span>
-            <span className="hidden sm:inline-flex items-center gap-1 bg-white/15 backdrop-blur px-3 py-1 rounded-full">
+            <span className="hidden sm:inline-flex items-center gap-1 bg-white/15 backdrop-blur px-3 py-1 rounded-full text-xs">
               <MapPin className="size-3.5" /> Nalgonda
             </span>
           </div>
@@ -143,7 +146,10 @@ export default function Home() {
                 <Phone className="size-4 mr-2" /> Call
               </Button>
             </a>
-            <a href={`https://wa.me/${formatWhatsAppNumber(settings?.whatsapp || "")}`} className="hidden sm:inline-flex">
+            <a
+              href={`https://wa.me/${formatWhatsAppNumber(settings?.whatsapp || "")}`}
+              className="hidden sm:inline-flex"
+            >
               <Button
                 size="lg"
                 variant="ghost"
@@ -313,19 +319,28 @@ export default function Home() {
         link={{ href: "/gallery", label: "View gallery" }}
       >
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {loading ? (
-            <p>Loading gallery...</p>
-          ) : (
-            images.map((img) => (
-              <Link href="/gallery" key={img.id} className="block aspect-square rounded-2xl overflow-hidden">
-                <img
-                  src={img.url}
-                  alt={img.caption || "Gallery image"}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+          {loading
+            ? Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="aspect-square rounded-2xl bg-secondary animate-pulse shadow-sm"
                 />
-              </Link>
-            ))
-          )}
+              ))
+            : images.map((img) => (
+                <Link
+                  href="/gallery"
+                  key={img.id}
+                  className="relative block aspect-square rounded-2xl overflow-hidden"
+                >
+                  <Image
+                    src={img.url}
+                    alt={img.caption || "Gallery image"}
+                    fill
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                    className="object-cover hover:scale-105 transition-transform duration-500"
+                  />
+                </Link>
+              ))}
         </div>
       </Section>
 

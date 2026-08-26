@@ -8,6 +8,7 @@ import {
   doc,
   setDoc,
   updateDoc,
+  deleteDoc,
   onSnapshot,
   query,
   orderBy,
@@ -78,13 +79,18 @@ export type Order = {
   status: OrderStatus;
   createdAt: number;
   userId?: string;
+  isDeleted?: boolean;
 };
 
 type OrdersState = {
   orders: Order[];
   setOrders: (orders: Order[]) => void;
   updateStatus: (id: string, status: OrderStatus) => Promise<void>;
-  updateStatusWithLoading: (id: string, status: OrderStatus) => Promise<{ success: boolean; error?: string }>;
+  updateStatusWithLoading: (
+    id: string,
+    status: OrderStatus,
+  ) => Promise<{ success: boolean; error?: string }>;
+  deleteOrder: (id: string) => Promise<void>;
   listenToOrders: (userId?: string, role?: "customer" | "admin") => () => void;
   listenToOrder: (orderId: string, onOrder: (order: Order | null) => void) => () => void;
 };
@@ -96,7 +102,7 @@ export const useOrders = create<OrdersState>()((set) => ({
     // Get order details before updating
     const orderRef = doc(db, "orders", id);
     const orderSnap = await getDoc(orderRef);
-    
+
     if (!orderSnap.exists()) {
       console.error("Order not found:", id);
       return;
@@ -161,6 +167,23 @@ export const useOrders = create<OrdersState>()((set) => ({
       return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
     }
   },
+
+  deleteOrder: async (id: string) => {
+    // 1. Optimistically remove from state immediately
+    set((state) => ({ orders: state.orders.filter((o) => o.id !== id) }));
+
+    const orderRef = doc(db, "orders", id);
+    try {
+      await deleteDoc(orderRef);
+    } catch (error: any) {
+      console.warn("Firestore deleteDoc encountered issue, applying soft-delete fallback:", error);
+      try {
+        await updateDoc(orderRef, { isDeleted: true, status: "Cancelled" });
+      } catch (innerError) {
+        console.error("Firestore backup updateDoc also failed:", innerError);
+      }
+    }
+  },
   listenToOrders: (userId, role) => {
     let q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
 
@@ -181,7 +204,9 @@ export const useOrders = create<OrdersState>()((set) => ({
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const fetchedOrders = snapshot.docs.map((doc) => doc.data() as Order);
+        const fetchedOrders = snapshot.docs
+          .map((doc) => doc.data() as Order)
+          .filter((o) => !o.isDeleted);
         set({ orders: fetchedOrders });
       },
       (error) => {

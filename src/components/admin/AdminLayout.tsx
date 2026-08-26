@@ -38,54 +38,56 @@ const nav = [
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
+import {
+  getAdminSoundEnabled,
+  setAdminSoundEnabled,
+  playOrderChime,
+} from "@/lib/audio";
+
 export function AdminLayout({ children }: { children?: ReactNode }) {
   const user = useAuth((s) => s.user);
   const initialized = useAuth((s) => s.initialized);
   const router = useRouter();
   const pathname = usePathname();
   const [drawer, setDrawer] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabledState] = useState(true);
+
+  // Sync initial sound state from localStorage & listen for toggles
+  useEffect(() => {
+    setSoundEnabledState(getAdminSoundEnabled());
+    const handleToggle = () => setSoundEnabledState(getAdminSoundEnabled());
+    window.addEventListener("aroma_sound_toggle", handleToggle);
+    return () => window.removeEventListener("aroma_sound_toggle", handleToggle);
+  }, []);
+
+  const toggleSound = (enabled: boolean) => {
+    setSoundEnabledState(enabled);
+    setAdminSoundEnabled(enabled);
+  };
 
   const orders = useOrders((s) => s.orders);
   const lastOrderTimeRef = useRef<number>(0);
 
   useEffect(() => {
     if (!orders.length) return;
-    
+
     // Find the latest order timestamp
-    const latestTime = Math.max(...orders.map(o => o.createdAt));
-    
+    const latestTime = Math.max(...orders.map((o) => o.createdAt));
+
     // If it's the first render (lastOrderTimeRef is 0), just set it and don't beep
     if (lastOrderTimeRef.current === 0) {
       lastOrderTimeRef.current = latestTime;
       return;
     }
 
-    // If there's a newer order, beep
+    // If there's a newer order, play chime
     if (latestTime > lastOrderTimeRef.current) {
       lastOrderTimeRef.current = latestTime;
-      
-      if (soundEnabled) {
-        try {
-          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          
-          osc.type = "sine";
-          osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 note
-          gain.gain.setValueAtTime(0.1, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
-          
-          osc.start(ctx.currentTime);
-          osc.stop(ctx.currentTime + 0.5);
-        } catch (e) {
-          console.error("Failed to play notification sound", e);
-        }
+      if (getAdminSoundEnabled()) {
+        playOrderChime();
       }
     }
-  }, [orders, soundEnabled]);
+  }, [orders]);
 
   useEffect(() => {
     if (!initialized) return;
@@ -151,10 +153,8 @@ export function AdminLayout({ children }: { children?: ReactNode }) {
         </nav>
         <div className="p-3 border-t border-border space-y-2">
           <div className="flex w-full items-center justify-between px-3 py-2 rounded-lg text-sm">
-            <span className="flex items-center gap-3">
-              Sound Alerts
-            </span>
-            <Switch checked={soundEnabled} onCheckedChange={setSoundEnabled} />
+            <span className="flex items-center gap-3">Sound Alerts</span>
+            <Switch checked={soundEnabled} onCheckedChange={toggleSound} />
           </div>
           <button
             onClick={handleSignOut}
@@ -172,9 +172,7 @@ export function AdminLayout({ children }: { children?: ReactNode }) {
           </button>
           <span className="font-display font-semibold">Aroma Admin</span>
         </header>
-        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
-          {children}
-        </main>
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-x-hidden">{children}</main>
       </div>
 
       {drawer && (
@@ -192,10 +190,8 @@ export function AdminLayout({ children }: { children?: ReactNode }) {
             </nav>
             <div className="p-3 border-t border-border space-y-2">
               <div className="flex w-full items-center justify-between px-3 py-2 rounded-lg text-sm">
-                <span className="flex items-center gap-3">
-                  Sound Alerts
-                </span>
-                <Switch checked={soundEnabled} onCheckedChange={setSoundEnabled} />
+                <span className="flex items-center gap-3">Sound Alerts</span>
+                <Switch checked={soundEnabled} onCheckedChange={toggleSound} />
               </div>
               <button
                 onClick={handleSignOut}

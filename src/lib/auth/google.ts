@@ -6,7 +6,8 @@ import {
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { useAuth } from "@/lib/store/auth";
-import { mapFirebaseUser } from "./session";
+import { mapFirebaseUser, syncFirestoreUserDoc } from "./session";
+import { toast } from "sonner";
 
 const AUTH_REDIRECT_KEY = "aroma_auth_redirect";
 
@@ -26,9 +27,10 @@ export function consumeAuthRedirect(fallback = "/profile"): string {
   return fallback;
 }
 
-/** Sync Firebase user into Zustand immediately (avoids race before navigation). */
+/** Sync Firebase user into Zustand & Firestore immediately. */
 export async function syncFirebaseUser(fbUser: FirebaseUser) {
   const mapped = await mapFirebaseUser(fbUser);
+  await syncFirestoreUserDoc(fbUser, mapped);
   useAuth.getState().setUser(mapped);
   useAuth.getState().setInitialized(true);
   return mapped;
@@ -64,12 +66,11 @@ export async function signInWithGoogle(options?: { redirectTo?: string }) {
 
   try {
     const cred = await signInWithPopup(auth, googleProvider);
-    await syncFirebaseUser(cred.user);
+    const mappedUser = await syncFirebaseUser(cred.user);
     sessionStorage.removeItem(AUTH_REDIRECT_KEY);
-    return { method: "popup" as const, user: cred.user };
+    return { method: "popup" as const, user: cred.user, mappedUser };
   } catch (err: unknown) {
-    const code =
-      err && typeof err === "object" && "code" in err ? String(err.code) : "";
+    const code = err && typeof err === "object" && "code" in err ? String(err.code) : "";
 
     if (isPopupBlockedError(code) && code !== "auth/popup-closed-by-user") {
       await signInWithRedirect(auth, googleProvider);
@@ -85,10 +86,12 @@ export async function completeGoogleRedirectSignIn(): Promise<boolean> {
   try {
     const result = await getRedirectResult(auth);
     if (!result?.user) return false;
-    await syncFirebaseUser(result.user);
+    const mapped = await syncFirebaseUser(result.user);
+    toast.success(`Welcome back, ${mapped.name}!`);
     return true;
   } catch (err) {
     console.error("Google redirect sign-in failed:", err);
+    toast.error(googleAuthErrorMessage(err));
     return false;
   }
 }
@@ -97,13 +100,19 @@ export function googleAuthErrorMessage(err: unknown): string {
   if (err && typeof err === "object" && "code" in err) {
     const code = String(err.code);
     if (code === "auth/unauthorized-domain") {
-      return "This domain is not authorized for sign-in. Add your Vercel URL in Firebase Console → Authentication → Settings → Authorized domains.";
+      return "This domain is not authorized for Google sign-in. Add your domain in Firebase Console → Authentication → Settings → Authorized domains.";
     }
     if (code === "auth/operation-not-allowed") {
       return "Google sign-in is not enabled. Enable it in Firebase Console → Authentication → Sign-in method.";
     }
     if (code === "auth/network-request-failed") {
-      return "Network error. Check your connection and try again.";
+      return "Network error. Please check your internet connection and try again.";
+    }
+    if (code === "auth/account-exists-with-different-credential") {
+      return "An account already exists with the same email address using a different sign-in method.";
+    }
+    if (code === "auth/popup-blocked") {
+      return "Popup was blocked by your browser. Attempting redirect sign-in...";
     }
   }
   return err instanceof Error ? err.message : "Google sign-in failed.";

@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, FirestoreSync } from "@/lib/auth/AuthProvider";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { useState } from "react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -11,10 +12,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <FirestoreSync />
-        {children}
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <FirestoreSync />
+          {children}
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

@@ -10,6 +10,8 @@ import { useSettings } from "@/lib/store/settings";
 import { getCafeInfo } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+
 const navLinks = [
   { to: "/", label: "Home" },
   { to: "/menu", label: "Menu" },
@@ -79,6 +81,7 @@ export function Header() {
             </nav>
 
             <div className="flex items-center gap-1 shrink-0">
+              <ThemeToggle />
               <a href={`tel:${info.phone}`} className="hidden sm:inline-flex">
                 <Button variant="ghost" size="icon">
                   <Phone className="size-4" />

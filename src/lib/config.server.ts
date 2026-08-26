@@ -14,11 +14,11 @@ export function getServerConfig() {
     nodeEnv: process.env.NODE_ENV,
     isProduction: isProductionRuntime(),
     hasFirebaseServiceAccount: hasFirebaseAdminCredentials(),
-    hasSmtp: Boolean(
-      process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS,
-    ),
+    hasSmtp: Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS),
     hasCloudinary: Boolean(
-      (process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME)?.trim() &&
+      (
+        process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+      )?.trim() &&
       (process.env.CLOUDINARY_API_KEY || process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY)?.trim() &&
       (process.env.CLOUDINARY_API_SECRET || process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET)?.trim(),
     ),
@@ -55,9 +55,15 @@ export function assertProductionSecrets(options?: {
   if (opts.smtp && !(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS)) {
     missing.push("SMTP_HOST, SMTP_USER, SMTP_PASS");
   }
-  const cloudName = (process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME)?.trim();
-  const apiKey = (process.env.CLOUDINARY_API_KEY || process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY)?.trim();
-  const apiSecret = (process.env.CLOUDINARY_API_SECRET || process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET)?.trim();
+  const cloudName = (
+    process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+  )?.trim();
+  const apiKey = (
+    process.env.CLOUDINARY_API_KEY || process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY
+  )?.trim();
+  const apiSecret = (
+    process.env.CLOUDINARY_API_SECRET || process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET
+  )?.trim();
   if (opts.cloudinary && !(cloudName && apiKey && apiSecret)) {
     missing.push("CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET");
   }
@@ -66,9 +72,7 @@ export function assertProductionSecrets(options?: {
   }
 
   if (missing.length > 0) {
-    throw new Error(
-      `Missing required production environment variable(s): ${missing.join("; ")}`,
-    );
+    throw new Error(`Missing required production environment variable(s): ${missing.join("; ")}`);
   }
 }
 

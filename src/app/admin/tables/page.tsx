@@ -30,7 +30,7 @@ export default function AdminTables() {
   const [newTable, setNewTable] = useState({ size: 2, totalTables: 1 });
 
   const [occupancy, setOccupancy] = useState<Record<string, "Free" | "Occupied" | "Reserved">>({});
-  
+
   const allPhysicalTables = useMemo(() => {
     const list: { id: string; size: number; label: string }[] = [];
     tables.forEach((t) => {
@@ -108,19 +108,32 @@ export default function AdminTables() {
       <h2 className="mt-8 font-display font-semibold text-lg flex items-center justify-between">
         Live Table Matrix
         <div className="flex items-center gap-3 text-xs font-normal">
-          <span className="flex items-center gap-1"><div className="size-2 rounded-full bg-secondary border border-border"></div> Free</span>
-          <span className="flex items-center gap-1"><div className="size-2 rounded-full bg-amber-400"></div> Reserved</span>
-          <span className="flex items-center gap-1"><div className="size-2 rounded-full bg-red-500"></div> Occupied</span>
+          <span className="flex items-center gap-1">
+            <div className="size-2 rounded-full bg-secondary border border-border"></div> Free
+          </span>
+          <span className="flex items-center gap-1">
+            <div className="size-2 rounded-full bg-amber-400"></div> Reserved
+          </span>
+          <span className="flex items-center gap-1">
+            <div className="size-2 rounded-full bg-red-500"></div> Occupied
+          </span>
         </div>
       </h2>
       <div className="mt-3 bg-card border border-border rounded-2xl p-5">
         <div className="flex flex-wrap gap-4">
           {allPhysicalTables.length === 0 && (
-            <p className="text-muted-foreground text-sm w-full text-center py-4">No tables configured.</p>
+            <p className="text-muted-foreground text-sm w-full text-center py-4">
+              No tables configured.
+            </p>
           )}
-          {allPhysicalTables.map(t => {
+          {allPhysicalTables.map((t) => {
             const status = occupancy[t.id] || "Free";
-            const bg = status === "Free" ? "bg-secondary text-foreground" : status === "Reserved" ? "bg-amber-100 text-amber-800 border-amber-300" : "bg-red-100 text-red-800 border-red-300";
+            const bg =
+              status === "Free"
+                ? "bg-secondary text-foreground"
+                : status === "Reserved"
+                  ? "bg-amber-100 text-amber-800 border-amber-300"
+                  : "bg-red-100 text-red-800 border-red-300";
             return (
               <button
                 key={t.id}
@@ -128,10 +141,12 @@ export default function AdminTables() {
                 className={`flex flex-col items-center justify-center size-20 sm:size-24 rounded-xl border ${bg} transition-all hover:opacity-80`}
               >
                 <span className="font-display font-bold text-lg sm:text-xl">{t.label}</span>
-                <span className="text-[10px] uppercase tracking-wider opacity-70">{t.size} seats</span>
+                <span className="text-[10px] uppercase tracking-wider opacity-70">
+                  {t.size} seats
+                </span>
                 <span className="text-xs font-medium mt-1">{status}</span>
               </button>
-            )
+            );
           })}
         </div>
       </div>

@@ -55,9 +55,7 @@ function VerifyEmailContent() {
             <div className="text-red-500 text-5xl mb-4">✕</div>
             <h1 className="text-2xl font-bold mb-2">Verification Failed</h1>
             <p className="text-muted-foreground mb-4">{message}</p>
-            <Button onClick={() => router.push("/auth/login")}>
-              Back to Login
-            </Button>
+            <Button onClick={() => router.push("/auth/login")}>Back to Login</Button>
           </div>
         )}
       </div>
@@ -68,7 +66,9 @@ function VerifyEmailContent() {
 export default function VerifyEmail() {
   return (
     <SiteLayout>
-      <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center">Loading...</div>}>
+      <Suspense
+        fallback={<div className="min-h-[60vh] flex items-center justify-center">Loading...</div>}
+      >
         <VerifyEmailContent />
       </Suspense>
     </SiteLayout>

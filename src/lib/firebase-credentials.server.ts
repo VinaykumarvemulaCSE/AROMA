@@ -2,10 +2,7 @@ import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 
-const SERVICE_ACCOUNT_FILES = [
-  "serviceAccountKey.json",
-  "firebase-service-account.json",
-] as const;
+const SERVICE_ACCOUNT_FILES = ["serviceAccountKey.json", "firebase-service-account.json"] as const;
 
 function normalizePrivateKey(key: string): string {
   // Convert escaped newline sequences ("\\n", "\\\\n", "\r\n") to actual newlines
@@ -36,7 +33,10 @@ function readServiceAccountFile(): Record<string, unknown> | null {
   for (const filename of SERVICE_ACCOUNT_FILES) {
     const path = `${process.cwd()}/${filename}`;
     if (!fs.existsSync(/*turbopackIgnore: true*/ path)) continue;
-    return parseServiceAccountJson(fs.readFileSync(/*turbopackIgnore: true*/ path, "utf-8"), filename);
+    return parseServiceAccountJson(
+      fs.readFileSync(/*turbopackIgnore: true*/ path, "utf-8"),
+      filename,
+    );
   }
   return null;
 }

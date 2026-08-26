@@ -31,6 +31,13 @@ export type Settings = {
   maxPartySize: number;
   bookingWindowDays: number;
   categories: { name: string; icon: string }[];
+  storeStatusOverride?: "auto" | "open" | "busy" | "closed";
+  storeNotice?: string;
+  flashSaleEnabled?: boolean;
+  flashSaleText?: string;
+  flashSaleCode?: string;
+  flashSaleEndHour?: number;
+  flashSaleBadge?: string;
 };
 
 export const DEFAULTS: Settings = {
@@ -68,6 +75,13 @@ export const DEFAULTS: Settings = {
     { name: "Beverages", icon: "☕" },
     { name: "Combos", icon: "🍱" },
   ],
+  storeStatusOverride: "auto",
+  storeNotice: "",
+  flashSaleEnabled: true,
+  flashSaleText: "Flat 20% OFF on all Starters & Shakes",
+  flashSaleCode: "AROMA20",
+  flashSaleEndHour: 23,
+  flashSaleBadge: "FLASH DEAL",
 };
 
 type SettingsState = {

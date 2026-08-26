@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -41,11 +42,7 @@ import { inr } from "@/lib/format";
 import { downloadBill } from "@/lib/bill";
 import { MenuCard } from "@/components/menu/MenuCard";
 import { toast } from "sonner";
-import {
-  saveUserProfile,
-  loadUserProfile,
-  listenToUserProfile,
-} from "@/lib/store/profile";
+import { saveUserProfile, loadUserProfile, listenToUserProfile } from "@/lib/store/profile";
 
 const emptyAddr: Omit<SavedAddress, "id"> = {
   label: "Home",
@@ -244,7 +241,9 @@ export default function Profile() {
         {/* Header */}
         <div className="flex items-center gap-4">
           {user.avatar ? (
-            <img src={user.avatar} className="size-16 rounded-full object-cover" alt="avatar" />
+            <div className="relative size-16 rounded-full overflow-hidden shrink-0">
+              <Image src={user.avatar} fill sizes="64px" className="object-cover" alt="avatar" />
+            </div>
           ) : (
             <div className="size-16 grid place-items-center rounded-full bg-primary text-primary-foreground font-display font-bold text-2xl">
               {user.name[0]?.toUpperCase()}
@@ -260,25 +259,27 @@ export default function Profile() {
         </div>
 
         <Tabs defaultValue="info" className="mt-8">
-          <TabsList className="flex w-full max-w-3xl overflow-x-auto justify-start h-auto p-1 border">
-            <TabsTrigger value="info" className="shrink-0">Info</TabsTrigger>
-            <TabsTrigger value="orders" className="shrink-0">
+          <TabsList className="flex w-full overflow-x-auto justify-start h-auto p-1 border flex-nowrap scrollbar-none snap-x select-none bg-muted/50 rounded-lg">
+            <TabsTrigger value="info" className="shrink-0 snap-start">
+              Info
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="shrink-0 snap-start">
               <ShoppingBag className="size-3.5 mr-1" />
               Orders
             </TabsTrigger>
-            <TabsTrigger value="addresses" className="shrink-0">
+            <TabsTrigger value="addresses" className="shrink-0 snap-start">
               <MapPin className="size-3.5 mr-1" />
               Addresses
             </TabsTrigger>
-            <TabsTrigger value="reservations" className="shrink-0">
+            <TabsTrigger value="reservations" className="shrink-0 snap-start">
               <Calendar className="size-3.5 mr-1" />
               Reservations
             </TabsTrigger>
-            <TabsTrigger value="favs" className="shrink-0">
+            <TabsTrigger value="favs" className="shrink-0 snap-start">
               <Heart className="size-3.5 mr-1" />
               Favorites
             </TabsTrigger>
-            <TabsTrigger value="notif" className="shrink-0">
+            <TabsTrigger value="notif" className="shrink-0 snap-start">
               <Bell className="size-3.5 mr-1" />
               Alerts
             </TabsTrigger>
@@ -432,7 +433,9 @@ export default function Profile() {
                   <ShoppingBag className="size-10 mx-auto text-muted-foreground" />
                   <p className="mt-3 text-muted-foreground">No orders yet.</p>
                   <Link href="/menu">
-                    <Button className="mt-4" variant="outline">Browse menu</Button>
+                    <Button className="mt-4" variant="outline">
+                      Browse menu
+                    </Button>
                   </Link>
                 </div>
               ) : (
@@ -472,7 +475,7 @@ export default function Profile() {
                                   i.image ||
                                   "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80",
                                 qty: i.qty || 1,
-                              }))
+                              })),
                             );
                             toast.success("Items added to your cart!");
                             router.push("/cart");
@@ -480,11 +483,18 @@ export default function Profile() {
                         >
                           <RotateCcw className="size-3 mr-1" /> Reorder
                         </Button>
-                        <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => downloadBill(o)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-xs"
+                          onClick={() => downloadBill(o)}
+                        >
                           <Download className="size-3 mr-1" /> Bill
                         </Button>
                         <Link href={`/track/${o.id}`}>
-                          <Button size="sm" className="h-8 text-xs">Track</Button>
+                          <Button size="sm" className="h-8 text-xs">
+                            Track
+                          </Button>
                         </Link>
                       </div>
                     </div>
@@ -601,11 +611,7 @@ export default function Profile() {
                 v={notif.email}
                 on={(v) => handleNotifChange("email", v)}
               />
-              <Toggle
-                label="SMS updates"
-                v={notif.sms}
-                on={(v) => handleNotifChange("sms", v)}
-              />
+              <Toggle label="SMS updates" v={notif.sms} on={(v) => handleNotifChange("sms", v)} />
               <Toggle
                 label="Promotional offers"
                 v={notif.promo}
@@ -704,7 +710,12 @@ export default function Profile() {
                 </Label>
                 <Input
                   value={addrForm.phone}
-                  onChange={(e) => setAddrForm({ ...addrForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                  onChange={(e) =>
+                    setAddrForm({
+                      ...addrForm,
+                      phone: e.target.value.replace(/\D/g, "").slice(0, 10),
+                    })
+                  }
                   className="mt-1.5"
                   maxLength={10}
                   placeholder="10-digit mobile number"

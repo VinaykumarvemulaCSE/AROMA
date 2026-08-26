@@ -1,6 +1,9 @@
 import { initializeApp, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { loadFirebaseServiceAccount, hasFirebaseAdminCredentials } from "./src/lib/firebase-credentials.server";
+import {
+  loadFirebaseServiceAccount,
+  hasFirebaseAdminCredentials,
+} from "./src/lib/firebase-credentials.server";
 
 // Initialize Firebase Admin using unified credential loader
 if (hasFirebaseAdminCredentials()) {
@@ -8,7 +11,9 @@ if (hasFirebaseAdminCredentials()) {
     credential: cert(loadFirebaseServiceAccount() as Parameters<typeof cert>[0]),
   });
 } else {
-  console.error("\n❌ Firebase Admin credentials are missing. Set FIREBASE_SERVICE_ACCOUNT_BASE64 or appropriate env vars.");
+  console.error(
+    "\n❌ Firebase Admin credentials are missing. Set FIREBASE_SERVICE_ACCOUNT_BASE64 or appropriate env vars.",
+  );
   process.exit(1);
 }
 const db = getFirestore();

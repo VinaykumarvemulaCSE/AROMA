@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarClock, Users, Check, X, Clock } from "lucide-react";
+import { CalendarClock, Users, Check, X, Clock, Download } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useTables, type Reservation } from "@/lib/store/tables";
+import { exportReservationsToCSV } from "@/lib/export";
 import { toast } from "sonner";
 
 const statusColor: Record<Reservation["status"], string> = {
@@ -28,6 +29,11 @@ export default function AdminRes() {
     toast.success(`Reservation ${id} → ${s}`);
   };
 
+  const handleExport = () => {
+    exportReservationsToCSV(list as any, "aroma_reservations");
+    toast.success(`Exported ${list.length} reservations to CSV`);
+  };
+
   // Stats
   const today = new Date().toISOString().slice(0, 10);
   const todayCount = reservations.filter((r) => r.slotDatetime.startsWith(today)).length;
@@ -42,7 +48,17 @@ export default function AdminRes() {
 
   return (
     <AdminLayout>
-      <h1 className="text-2xl sm:text-3xl font-display font-bold">Reservations</h1>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-display font-bold">Reservations</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm">
+            Manage table bookings & party schedules
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={handleExport} disabled={reservations.length === 0}>
+          <Download className="size-4 mr-1.5" /> Export Reservations CSV
+        </Button>
+      </div>
 
       {/* Stats */}
       <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -5,9 +5,23 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Trash2, Plus, Loader2, Image as ImageIcon, Upload, ImagePlus } from "lucide-react";
-import { useGallery } from "@/lib/store/gallery";
+import { useGallery, type GalleryImage } from "@/lib/store/gallery";
 import { secureUploadGalleryImage } from "@/lib/api/cloudinary";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
@@ -16,6 +30,9 @@ export default function AdminGallery() {
   const { images, loading, fetchImages, addImage, deleteImage } = useGallery();
   const [isAdding, setIsAdding] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<GalleryImage | null>(null);
+
   const fileRef = useRef<HTMLInputElement>(null);
   const [newImage, setNewImage] = useState({
     url: "",
@@ -92,13 +109,18 @@ export default function AdminGallery() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this image?")) return;
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeletingId(deleteTarget.id);
     try {
-      await deleteImage(id);
-      toast.success("Image deleted successfully");
-    } catch {
-      toast.error("Failed to delete image");
+      await deleteImage(deleteTarget.id);
+      toast.success("Masterpiece deleted successfully!");
+      setDeleteTarget(null);
+    } catch (err) {
+      console.error("Delete failed:", err);
+      toast.error("Failed to delete image.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -120,7 +142,7 @@ export default function AdminGallery() {
       {isAdding && (
         <div className="mt-6 bg-card border border-border rounded-2xl p-6">
           <h2 className="font-display font-semibold text-lg mb-4">Add New Image</h2>
-          
+
           {/* Image upload section */}
           <div className="mb-4">
             <Label>Image</Label>
@@ -239,7 +261,10 @@ export default function AdminGallery() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {images.map((image) => (
-              <div key={image.id} className="group relative aspect-square rounded-2xl overflow-hidden border border-border">
+              <div
+                key={image.id}
+                className="group relative aspect-square rounded-2xl overflow-hidden border border-border"
+              >
                 <img
                   src={image.url}
                   alt={image.caption || image.category}
@@ -248,13 +273,18 @@ export default function AdminGallery() {
                 <Button
                   size="icon"
                   variant="destructive"
-                  onClick={() => handleDelete(image.id)}
-                  className="absolute top-2 right-2 size-8 shadow-sm"
+                  onClick={() => setDeleteTarget(image)}
+                  disabled={deletingId === image.id}
+                  className="absolute top-2 right-2 size-8 shadow-md z-20 cursor-pointer hover:scale-105 transition-transform"
                   aria-label="Delete image"
                 >
-                  <Trash2 className="size-4" />
+                  {deletingId === image.id ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="size-4" />
+                  )}
                 </Button>
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-end p-4 pointer-events-none">
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-end p-4 pointer-events-none z-10">
                   <span className="text-white text-xs font-medium bg-black/50 px-2 py-1 rounded mb-2">
                     {image.category}
                   </span>
@@ -267,6 +297,68 @@ export default function AdminGallery() {
           </div>
         )}
       </div>
+
+      {/* On-Screen Delete Confirmation Modal */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-display font-bold text-destructive flex items-center gap-2">
+              <Trash2 className="size-5" /> Delete Masterpiece?
+            </DialogTitle>
+            <DialogDescription className="mt-1 text-muted-foreground">
+              Are you sure you want to delete this masterpiece from your gallery? This will
+              permanently remove it from both your website gallery and Cloudinary storage.
+            </DialogDescription>
+          </DialogHeader>
+
+          {deleteTarget && (
+            <div className="my-3 border border-border rounded-xl p-3 bg-secondary/30 flex gap-3 items-center">
+              <img
+                src={deleteTarget.url}
+                alt={deleteTarget.caption || deleteTarget.category}
+                className="size-16 rounded-lg object-cover border border-border shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary">
+                  {deleteTarget.category}
+                </span>
+                {deleteTarget.caption ? (
+                  <p className="text-sm font-medium mt-1 truncate">{deleteTarget.caption}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1">No description</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0 mt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleteTarget(null)}
+              disabled={!!deletingId}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={!!deletingId}
+            >
+              {deletingId ? (
+                <>
+                  <Loader2 className="size-4 mr-2 animate-spin" /> Deleting…
+                </>
+              ) : (
+                <>
+                  <Trash2 className="size-4 mr-2" /> Delete Masterpiece
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

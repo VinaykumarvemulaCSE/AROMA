@@ -78,14 +78,17 @@ export function downloadBill(order: BillOrder) {
 
   const w = window.open("", "_blank", "width=620,height=820");
   if (!w) {
-    // popup blocked — fallback: download as .html
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `aroma-bill-${order.id}.html`;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => {
+      if (document.body.contains(a)) document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 1000);
     return;
   }
   w.document.write(html);

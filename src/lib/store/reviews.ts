@@ -60,7 +60,7 @@ export const useReviews = create<ReviewsState>()((set) => ({
     // Get review details before updating
     const reviewRef = doc(db, "reviews", id);
     const reviewSnap = await getDoc(reviewRef);
-    
+
     if (!reviewSnap.exists()) {
       console.error("Review not found:", id);
       return;

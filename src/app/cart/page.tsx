@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Trash2, ShoppingBag } from "lucide-react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { Button } from "@/components/ui/button";
@@ -14,12 +15,12 @@ export default function CartPage() {
   const remove = useCart((s) => s.remove);
   const clear = useCart((s) => s.clear);
   const settings = useSettings((s) => s.settings);
-  
+
   const subtotal = lines.reduce((s, l) => s + l.qty * l.price, 0);
   const gstRate = settings?.gst ?? 5;
   const freeDeliveryThreshold = settings?.freeDeliveryAbove ?? 499;
   const deliveryFee = settings?.deliveryFee ?? 40;
-  const tax = Math.round(subtotal * gstRate / 100);
+  const tax = Math.round((subtotal * gstRate) / 100);
   const delivery = subtotal > 0 ? (subtotal >= freeDeliveryThreshold ? 0 : deliveryFee) : 0;
   const total = subtotal + tax + delivery;
 
@@ -43,11 +44,15 @@ export default function CartPage() {
                 <div key={l.id} className="bg-card border border-border rounded-2xl p-3">
                   {/* Top row: image + name + delete */}
                   <div className="flex items-start gap-3">
-                    <img
-                      src={l.image}
-                      alt={l.name}
-                      className="size-16 sm:size-20 rounded-xl object-cover shrink-0"
-                    />
+                    <div className="relative size-16 sm:size-20 rounded-xl overflow-hidden shrink-0">
+                      <Image
+                        src={l.image}
+                        alt={l.name}
+                        fill
+                        sizes="80px"
+                        className="object-cover"
+                      />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold truncate">{l.name}</p>
                       <p className="text-sm text-muted-foreground">{inr(l.price)} each</p>

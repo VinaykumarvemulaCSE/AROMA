@@ -1,9 +1,6 @@
 "use server";
 import { z } from "zod";
-import {
-  assertEmailSent,
-  sendReservationStatusEmailInternal,
-} from "../email.server";
+import { assertEmailSent, sendReservationStatusEmailInternal } from "../email.server";
 import { assertProductionSecrets } from "../config.server";
 import { verifyAdmin } from "./auth-server.server";
 

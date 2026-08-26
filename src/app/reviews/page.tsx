@@ -63,7 +63,9 @@ export default function Reviews() {
                 />
               ))}
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">{settings?.reviewCount || 1284} reviews</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {settings?.reviewCount || 1284} reviews
+            </p>
           </div>
           <div className="bg-card border border-border rounded-2xl p-6 md:col-span-2">
             {[5, 4, 3, 2, 1].map((s) => (

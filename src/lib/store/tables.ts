@@ -148,7 +148,7 @@ export const useTables = create<TableState>()((set, get) => ({
     // Get reservation details before updating
     const reservationRef = doc(db, "reservations", id);
     const reservationSnap = await getDoc(reservationRef);
-    
+
     if (!reservationSnap.exists()) {
       console.error("Reservation not found:", id);
       return;

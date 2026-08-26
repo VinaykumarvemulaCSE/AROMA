@@ -18,7 +18,7 @@ export default function Contact() {
   const fetchSettings = useSettings((s) => s.fetchSettings);
   const [loading, setLoading] = useState(false);
   const user = useAuth((s) => s.user);
-  
+
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
   const [message, setMessage] = useState("");
@@ -38,7 +38,9 @@ export default function Contact() {
     setLoading(true);
     try {
       const result = await sendContactEmail({
-        name: name.trim(), email: email.trim(), message: message.trim()
+        name: name.trim(),
+        email: email.trim(),
+        message: message.trim(),
       });
       if (result?.success) {
         toast.success("Message sent! We'll be in touch soon.");
@@ -68,8 +70,8 @@ export default function Contact() {
   const mapsLink = settings?.mapsUrl
     ? settings.mapsUrl
     : settings?.address
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address)}`
-    : "https://www.google.com/maps";
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address)}`
+      : "https://www.google.com/maps";
 
   return (
     <SiteLayout>
@@ -106,19 +108,42 @@ export default function Contact() {
               <iframe title="Map" className="w-full h-full" src={mapSrc} />
             </div>
           </div>
-          <form onSubmit={submit} className="bg-card border border-border rounded-2xl p-6 space-y-4 h-fit">
+          <form
+            onSubmit={submit}
+            className="bg-card border border-border rounded-2xl p-6 space-y-4 h-fit"
+          >
             <h2 className="font-display font-semibold text-lg">Send a message</h2>
             <div>
               <Label>Name</Label>
-              <Input id="contact-name" className="mt-1.5" value={name} onChange={(e) => setName(e.target.value)} required />
+              <Input
+                id="contact-name"
+                className="mt-1.5"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
             </div>
             <div>
               <Label>Email</Label>
-              <Input id="contact-email" type="email" className="mt-1.5" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Input
+                id="contact-email"
+                type="email"
+                className="mt-1.5"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
             <div>
               <Label>Message</Label>
-              <Textarea id="contact-message" rows={5} className="mt-1.5" value={message} onChange={(e) => setMessage(e.target.value)} required />
+              <Textarea
+                id="contact-message"
+                rows={5}
+                className="mt-1.5"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                required
+              />
             </div>
             <Button type="submit" className="w-full" size="lg" disabled={loading}>
               {loading ? (
@@ -136,10 +161,25 @@ export default function Contact() {
   );
 }
 
-function Card({ icon, label, value, href }: { icon: React.ReactNode; label: string; value: string; href: string }) {
+function Card({
+  icon,
+  label,
+  value,
+  href,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  href: string;
+}) {
   return (
-    <a href={href} className="flex items-center gap-4 bg-card border border-border rounded-2xl p-5 hover:border-primary transition-colors">
-      <div className="grid place-items-center size-11 rounded-xl bg-secondary text-primary">{icon}</div>
+    <a
+      href={href}
+      className="flex items-center gap-4 bg-card border border-border rounded-2xl p-5 hover:border-primary transition-colors"
+    >
+      <div className="grid place-items-center size-11 rounded-xl bg-secondary text-primary">
+        {icon}
+      </div>
       <div>
         <p className="text-xs uppercase text-muted-foreground tracking-wider">{label}</p>
         <p className="font-semibold">{value}</p>

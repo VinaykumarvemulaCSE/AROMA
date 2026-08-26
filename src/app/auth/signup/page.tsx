@@ -2,30 +2,40 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { useAuth } from "@/lib/store/auth";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { sendCustomVerificationEmail } from "@/lib/api/custom-verification";
-import {
-  googleAuthErrorMessage,
-  signInWithGoogle,
-  syncFirebaseUser,
-} from "@/lib/auth/google";
+import { googleAuthErrorMessage, signInWithGoogle, syncFirebaseUser } from "@/lib/auth/google";
 
 function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect");
+  const user = useAuth((s) => s.user);
+  const initialized = useAuth((s) => s.initialized);
 
   const [form, setForm] = useState({ name: "", email: "", pwd: "", confirm: "" });
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Auto redirect if already signed in
+  useEffect(() => {
+    if (initialized && user) {
+      if (redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")) {
+        router.push(redirectTo);
+      } else {
+        router.push("/profile");
+      }
+    }
+  }, [initialized, user, redirectTo, router]);
 
   const goAfterSignup = () => {
     if (redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")) {
@@ -55,7 +65,10 @@ function SignupForm() {
       try {
         const result = await sendCustomVerificationEmail({ data: { email: form.email } });
         if (result && !result.success) {
-          console.warn("Custom verification email failed, sending standard Firebase verification:", result.error);
+          console.warn(
+            "Custom verification email failed, sending standard Firebase verification:",
+            result.error,
+          );
           const { sendEmailVerification } = await import("firebase/auth");
           await sendEmailVerification(cred.user);
         }
@@ -64,7 +77,7 @@ function SignupForm() {
         try {
           const { sendEmailVerification } = await import("firebase/auth");
           await sendEmailVerification(cred.user);
-        } catch { }
+        } catch {}
       }
 
       toast.success("Account created! Please check your email to verify.");
@@ -99,7 +112,9 @@ function SignupForm() {
         redirectTo: redirectTo ?? "/profile",
       });
       if (result.method === "redirect") return;
-      toast.success(`Welcome, ${result.user.displayName ?? "there"}! 🎉`);
+      toast.success(
+        `Welcome, ${result.mappedUser?.name || result.user.displayName || "there"}! 🎉`,
+      );
       goAfterSignup();
     } catch (err: unknown) {
       const code = err && typeof err === "object" && "code" in err ? String(err.code) : "";
@@ -218,7 +233,9 @@ function SignupForm() {
       <p className="text-center text-sm text-muted-foreground mt-4">
         Already have an account?{" "}
         <Link
-          href={redirectTo ? `/auth/login?redirect=${encodeURIComponent(redirectTo)}` : "/auth/login"}
+          href={
+            redirectTo ? `/auth/login?redirect=${encodeURIComponent(redirectTo)}` : "/auth/login"
+          }
           className="text-primary font-medium"
         >
           Sign in

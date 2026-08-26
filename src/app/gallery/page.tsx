@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
@@ -43,12 +44,14 @@ export default function Gallery() {
             <button
               key={p.id}
               onClick={() => setOpen(i)}
-              className="aspect-square rounded-2xl overflow-hidden group"
+              className="relative aspect-square rounded-2xl overflow-hidden group"
             >
-              <img
+              <Image
                 src={optimizeImage(p.url, 800)}
                 alt={p.caption || p.category}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                fill
+                sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                className="object-cover group-hover:scale-105 transition-transform duration-500"
               />
             </button>
           ))}
@@ -57,17 +60,26 @@ export default function Gallery() {
 
       {open !== null && list[open] && (
         <div
-          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => setOpen(null)}
         >
-          <button className="absolute top-4 right-4 text-white" onClick={(e) => { e.stopPropagation(); setOpen(null); }}>
-            <X />
+          <button
+            className="absolute top-4 right-4 text-white hover:text-accent transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen(null);
+            }}
+          >
+            <X className="size-6" />
           </button>
-          <img
-            src={optimizeImage(list[open].url, 1600)}
-            alt={list[open].caption || list[open].category}
-            className="max-h-[80vh] max-w-[90vw] rounded-xl object-contain"
-          />
+          <div className="relative max-h-[85vh] max-w-[90vw] w-[800px] h-[600px]">
+            <Image
+              src={optimizeImage(list[open].url, 1600)}
+              alt={list[open].caption || list[open].category}
+              fill
+              className="rounded-2xl object-contain shadow-2xl"
+            />
+          </div>
         </div>
       )}
     </SiteLayout>

@@ -57,10 +57,16 @@ export default function AdminSettings() {
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Logo Letter(s)">
-              <Input value={s.logoLetters || ""} onChange={(e) => upd("logoLetters", e.target.value)} />
+              <Input
+                value={s.logoLetters || ""}
+                onChange={(e) => upd("logoLetters", e.target.value)}
+              />
             </Field>
             <Field label="Location Name">
-              <Input value={s.locationName || ""} onChange={(e) => upd("locationName", e.target.value)} />
+              <Input
+                value={s.locationName || ""}
+                onChange={(e) => upd("locationName", e.target.value)}
+              />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -176,7 +182,7 @@ export default function AdminSettings() {
           </div>
         </Card>
 
-        <Card title="Tax">
+        <Card title="Tax & Invoicing">
           <Field label="GST %">
             <Input
               type="number"
@@ -184,6 +190,130 @@ export default function AdminSettings() {
               onChange={(e) => upd("gst", Number(e.target.value))}
             />
           </Field>
+        </Card>
+
+        <Card title="Automated Reports & Sales Digest">
+          <div className="space-y-3">
+            <Field label="Digest Recipient Email">
+              <Input
+                type="email"
+                placeholder="owner@aroma.com"
+                defaultValue={s.email || "owner@aroma.com"}
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Frequency">
+                <select className="mt-1.5 h-9 w-full rounded-md border border-border bg-card px-3 text-sm">
+                  <option value="daily">Daily Digest (9:00 PM)</option>
+                  <option value="weekly">Weekly Summary (Sun)</option>
+                  <option value="monthly">Monthly Audit</option>
+                </select>
+              </Field>
+              <Field label="Format">
+                <select className="mt-1.5 h-9 w-full rounded-md border border-border bg-card px-3 text-sm">
+                  <option value="pdf">PDF Report + CSV</option>
+                  <option value="summary">Email Summary</option>
+                </select>
+              </Field>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full mt-2"
+              onClick={() => {
+                toast.success("Scheduled Digest simulated!", {
+                  description: `A test sales digest has been sent to ${s.email || "owner@aroma.com"}.`,
+                });
+              }}
+            >
+              Send Test Digest Now
+            </Button>
+          </div>
+        </Card>
+
+        <Card title="Live Kitchen & Store Status">
+          <div className="space-y-3">
+            <Field label="Operating Mode Override">
+              <select
+                value={s.storeStatusOverride || "auto"}
+                onChange={(e) => upd("storeStatusOverride", e.target.value as any)}
+                className="mt-1.5 h-9 w-full rounded-md border border-border bg-card px-3 text-sm font-medium"
+              >
+                <option value="auto">🟢 Automatic (8:00 AM – 11:00 PM + Rush Hours)</option>
+                <option value="open">🟢 Force Open (Accepting Orders)</option>
+                <option value="busy">🟡 Force Rush Hour (Kitchen Busy · High Prep Time)</option>
+                <option value="closed">🔴 Force Kitchen Closed (Maintenance / Holiday)</option>
+              </select>
+            </Field>
+            <Field label="Custom Store Banner Notice (Optional)">
+              <Input
+                placeholder="e.g. Closed today for Diwali / Private Event"
+                value={s.storeNotice || ""}
+                onChange={(e) => upd("storeNotice", e.target.value)}
+              />
+            </Field>
+            <p className="text-xs text-muted-foreground">
+              When forced to "Kitchen Closed", the store status pill turns red across the customer home & menu screens.
+            </p>
+          </div>
+        </Card>
+
+        <Card title="Deal of the Day & Flash Banner (CMS)">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Enable Flash Deal Banner</p>
+                <p className="text-xs text-muted-foreground">
+                  Displays an animated countdown deal ribbon across all customer screens
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={s.flashSaleEnabled !== false}
+                onChange={(e) => upd("flashSaleEnabled", e.target.checked)}
+                className="size-5 rounded accent-primary cursor-pointer"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <Field label="Badge Label">
+                <Input
+                  placeholder="e.g. FLASH DEAL, TODAY ONLY"
+                  value={s.flashSaleBadge || ""}
+                  onChange={(e) => upd("flashSaleBadge", e.target.value)}
+                />
+              </Field>
+              <Field label="Coupon Code">
+                <Input
+                  placeholder="e.g. AROMA20"
+                  value={s.flashSaleCode || ""}
+                  onChange={(e) => upd("flashSaleCode", e.target.value)}
+                />
+              </Field>
+            </div>
+
+            <Field label="Offer Announcement Headline">
+              <Input
+                placeholder="e.g. Flat 20% OFF on all Starters & Shakes"
+                value={s.flashSaleText || ""}
+                onChange={(e) => upd("flashSaleText", e.target.value)}
+              />
+            </Field>
+
+            <Field label="Daily Expiry Hour (Countdown Reset)">
+              <select
+                value={s.flashSaleEndHour ?? 23}
+                onChange={(e) => upd("flashSaleEndHour", Number(e.target.value))}
+                className="mt-1.5 h-9 w-full rounded-md border border-border bg-card px-3 text-sm"
+              >
+                <option value={21}>9:00 PM (Dinner Special)</option>
+                <option value={22}>10:00 PM (Late Night Special)</option>
+                <option value={23}>11:00 PM (Midnight Closing)</option>
+                <option value={15}>3:00 PM (Afternoon Lunch Rush)</option>
+              </select>
+            </Field>
+          </div>
         </Card>
 
         <Card title="Menu Categories">

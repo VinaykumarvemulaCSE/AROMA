@@ -2,8 +2,22 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect } from "react";
-import { Check, ChevronRight, ChevronLeft, MessageCircle, Tag, X, MapPin } from "lucide-react";
+import {
+  Check,
+  ChevronRight,
+  ChevronLeft,
+  MessageCircle,
+  Tag,
+  X,
+  MapPin,
+  Home as HomeIcon,
+  Briefcase as WorkIcon,
+  HelpCircle,
+  ChevronDown,
+  ShoppingBag,
+} from "lucide-react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +29,7 @@ import { useCart } from "@/lib/store/cart";
 import { useAddresses } from "@/lib/store/address";
 import { useAuth } from "@/lib/store/auth";
 import { useSettings } from "@/lib/store/settings";
+import { useCoupons } from "@/lib/store/coupon";
 import { auth } from "@/lib/firebase";
 import { createOrder } from "@/lib/api/orders";
 import { validateCouponCode } from "@/lib/api/coupons";
@@ -57,13 +72,20 @@ export default function CheckoutPage() {
   const gstRate = settings?.gst ?? 5;
   const freeDeliveryThreshold = settings?.freeDeliveryAbove ?? 499;
   const deliveryFee = settings?.deliveryFee ?? 40;
-  const tax = Math.round(subtotal * gstRate / 100);
+  const tax = Math.round((subtotal * gstRate) / 100);
   const delivery = subtotal >= freeDeliveryThreshold ? 0 : deliveryFee;
 
   const [step, setStep] = useState(0);
   const [showGuestDialog, setShowGuestDialog] = useState(false);
   const [guestProceed, setGuestProceed] = useState(false);
-  
+  const [showManualAddressForm, setShowManualAddressForm] = useState(false);
+
+  // Coupons live listener
+  const { coupons, listenToCoupons } = useCoupons();
+  useEffect(() => {
+    return listenToCoupons();
+  }, [listenToCoupons]);
+
   // Auto-fill address from saved default address or user profile
   const defaultAddress = addresses.find((a) => a.isDefault) || addresses[0];
   const [addr, setAddr] = useState<AddrForm>({
@@ -76,7 +98,16 @@ export default function CheckoutPage() {
     type: defaultAddress?.label ?? "Home",
     notes: "",
   });
-  
+
+  // Toggle manual form when saved addresses load
+  useEffect(() => {
+    if (addresses.length > 0) {
+      setShowManualAddressForm(false);
+    } else {
+      setShowManualAddressForm(true);
+    }
+  }, [addresses.length]);
+
   const [contact, setContact] = useState<ContactForm>({
     name: user?.name ?? "",
     email: user?.email ?? "",
@@ -126,6 +157,30 @@ export default function CheckoutPage() {
   const discount = appliedCoupon?.discountAmount ?? 0;
   const total = Math.max(0, subtotal + tax + delivery - discount);
 
+  // Filter available coupons for suggestions
+  const activeSuggestedCoupons = coupons.filter(
+    (c) =>
+      c.status === "Active" && subtotal >= c.minOrder && (c.maxUses === 0 || c.used < c.maxUses),
+  );
+
+  const applySuggestedCoupon = async (code: string) => {
+    setCouponInput(code);
+    try {
+      const result = await validateCouponCode({ code, subtotal });
+      if (!result.valid) {
+        toast.error(result.error);
+        return;
+      }
+      setAppliedCoupon({
+        code: result.coupon.code,
+        discountAmount: result.coupon.discountAmount,
+      });
+      toast.success(`🎉 Coupon ${code} applied successfully!`);
+    } catch {
+      toast.error("Failed to apply coupon.");
+    }
+  };
+
   // ── Saved address selector ──
   const applySaved = (id: string) => {
     const a = addresses.find((x) => x.id === id);
@@ -140,6 +195,7 @@ export default function CheckoutPage() {
       type: a.label,
       notes: "",
     });
+    setShowManualAddressForm(false);
     toast.success(`Address "${a.label}" loaded.`);
   };
 
@@ -148,7 +204,8 @@ export default function CheckoutPage() {
     if (!couponInput.trim()) return;
     try {
       const result = await validateCouponCode({
-        code: couponInput, subtotal
+        code: couponInput,
+        subtotal,
       });
       if (!result.valid) {
         toast.error(result.error);
@@ -302,7 +359,7 @@ export default function CheckoutPage() {
       clear();
       toast.success("Order placed! Waiting for admin to confirm.");
       await new Promise((r) => setTimeout(r, 300));
-      
+
       const search = opened ? "" : "?wa=1";
       router.push(`/track/${res.orderId}${search}`);
     } catch (err: any) {
@@ -315,31 +372,68 @@ export default function CheckoutPage() {
 
   return (
     <SiteLayout>
-      <section className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-10">
-        <h1 className="text-3xl font-display font-bold">Checkout</h1>
+      <section className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8 pb-32 lg:pb-12">
+        <h1 className="text-2xl sm:text-3xl font-display font-bold">Checkout</h1>
 
         {/* Stepper */}
-        <ol className="mt-6 flex items-center gap-1 sm:gap-2">
+        <ol className="mt-4 sm:mt-6 flex items-center gap-1 sm:gap-2 overflow-x-auto pb-2 scrollbar-none">
           {steps.map((s, i) => (
-            <li key={s} className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
+            <li key={s} className="flex items-center gap-1 sm:gap-2 flex-1 min-w-[70px] sm:min-w-0">
               <span
-                className={`grid place-items-center size-7 shrink-0 rounded-full text-xs font-bold ${i <= step ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
+                className={`grid place-items-center size-7 shrink-0 rounded-full text-xs font-bold transition-colors ${i <= step ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
               >
                 {i < step ? <Check className="size-4" /> : i + 1}
               </span>
               <span
-                className={`text-sm truncate ${i === step ? "font-semibold" : "text-muted-foreground hidden sm:inline"}`}
+                className={`text-xs sm:text-sm truncate ${i === step ? "font-semibold text-foreground" : "text-muted-foreground hidden sm:inline"}`}
               >
                 {s}
               </span>
               {i < steps.length - 1 && (
-                <div className={`flex-1 h-px ${i < step ? "bg-primary" : "bg-border"}`} />
+                <div
+                  className={`flex-1 h-px min-w-[12px] ${i < step ? "bg-primary" : "bg-border"}`}
+                />
               )}
             </li>
           ))}
         </ol>
 
         <div className="mt-8 grid lg:grid-cols-3 gap-6">
+          {/* Collapsible Order Summary Accordion on Mobile */}
+          {step > 0 && step < 3 && (
+            <div className="lg:hidden w-full bg-secondary/35 rounded-xl border border-border/80 overflow-hidden mb-4">
+              <details className="group">
+                <summary className="flex items-center justify-between p-3.5 cursor-pointer select-none font-semibold text-sm">
+                  <div className="flex items-center gap-2">
+                    <ShoppingBag className="size-4 text-primary" />
+                    <span>Order Summary ({lines.length} items)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-foreground font-bold">{inr(total)}</span>
+                    <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
+                  </div>
+                </summary>
+                <div className="p-3.5 pt-0 border-t border-border/40 text-sm space-y-2.5 bg-card/40">
+                  {lines.map((l) => (
+                    <div
+                      key={l.id}
+                      className="flex justify-between items-center text-xs text-muted-foreground"
+                    >
+                      <span>
+                        {l.qty} × {l.name}
+                      </span>
+                      <span>{inr(l.qty * l.price)}</span>
+                    </div>
+                  ))}
+                  <div className="border-t border-border/40 pt-2 flex justify-between font-bold text-xs mt-2">
+                    <span>Payable Total</span>
+                    <span>{inr(total)}</span>
+                  </div>
+                </div>
+              </details>
+            </div>
+          )}
+
           {/* Main panel */}
           <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6">
             {/* Step 0 — Review order */}
@@ -349,7 +443,15 @@ export default function CheckoutPage() {
                 <ul className="divide-y divide-border">
                   {lines.map((l) => (
                     <li key={l.id} className="py-3 flex items-center gap-3">
-                      <img src={l.image} className="size-14 rounded-lg object-cover" alt={l.name} />
+                      <div className="relative size-14 rounded-lg overflow-hidden shrink-0">
+                        <Image
+                          src={l.image}
+                          fill
+                          sizes="56px"
+                          className="object-cover"
+                          alt={l.name}
+                        />
+                      </div>
                       <div className="flex-1">
                         <p className="font-medium">{l.name}</p>
                         <p className="text-sm text-muted-foreground">
@@ -382,18 +484,53 @@ export default function CheckoutPage() {
                       </button>
                     </div>
                   ) : (
-                    <div className="flex gap-2">
-                      <Input
-                        value={couponInput}
-                        onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                        placeholder="Enter coupon code"
-                        className="font-mono"
-                        onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), applyCoupon())}
-                        disabled={isSubmitting}
-                      />
-                      <Button type="button" variant="outline" onClick={applyCoupon}>
-                        Apply
-                      </Button>
+                    <div className="space-y-4">
+                      <div className="flex gap-2">
+                        <Input
+                          value={couponInput}
+                          onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                          placeholder="Enter coupon code"
+                          className="font-mono"
+                          onKeyDown={(e) =>
+                            e.key === "Enter" && (e.preventDefault(), applyCoupon())
+                          }
+                          disabled={isSubmitting}
+                        />
+                        <Button type="button" variant="outline" onClick={applyCoupon}>
+                          Apply
+                        </Button>
+                      </div>
+
+                      {/* Coupon Auto-Suggestions */}
+                      {activeSuggestedCoupons.length > 0 && (
+                        <div className="mt-3 flex flex-col gap-2">
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                            Available Offers
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {activeSuggestedCoupons.map((c) => (
+                              <button
+                                key={c.code}
+                                type="button"
+                                onClick={() => applySuggestedCoupon(c.code)}
+                                className="flex items-center justify-between p-3 rounded-xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition-all text-left group active:scale-[0.98]"
+                              >
+                                <div className="min-w-0">
+                                  <span className="font-mono text-xs font-bold text-primary flex items-center gap-1">
+                                    <Tag className="size-3" /> {c.code}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground block mt-0.5 truncate max-w-[200px]">
+                                    {c.description || `Save ${inr(c.discountAmount)}`}
+                                  </span>
+                                </div>
+                                <span className="text-xs text-primary font-semibold shrink-0 group-hover:translate-x-0.5 transition-transform">
+                                  Apply
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -402,109 +539,166 @@ export default function CheckoutPage() {
 
             {/* Step 1 — Delivery address */}
             {step === 1 && (
-              <div>
-                <h2 className="font-display font-semibold text-lg mb-4">Delivery address</h2>
+              <div className="space-y-6 animate-fadeIn">
+                <div>
+                  <h2 className="font-display font-semibold text-lg">Delivery address</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Specify where we should deliver your warm delights.
+                  </p>
+                </div>
 
                 {/* Saved address picker */}
                 {addresses.length > 0 && (
-                  <div className="mb-5">
-                    <p className="text-sm text-muted-foreground mb-2 flex items-center gap-1.5">
-                      <MapPin className="size-3.5" /> Saved addresses
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                      <MapPin className="size-4 text-primary" /> Select saved address
                     </p>
-                    <div className="flex flex-wrap gap-2">
-                      {addresses.map((a) => (
-                        <button
-                          key={a.id}
-                          type="button"
-                          onClick={() => applySaved(a.id)}
-                          disabled={isSubmitting}
-                          className={`text-xs px-3 py-1.5 rounded-full border transition-all ${addr.line1 === a.line1 ? "border-primary bg-primary/10 text-primary font-semibold" : "border-border hover:border-primary hover:bg-secondary/60"}`}
-                        >
-                          {a.label} {a.isDefault && "⭐"}
-                        </button>
-                      ))}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {addresses.map((a) => {
+                        const isSelected = addr.line1 === a.line1 && addr.pin === a.pin;
+                        const Icon =
+                          a.label === "Home" ? HomeIcon : a.label === "Work" ? WorkIcon : MapPin;
+                        // Map local constants to avoid symbol overlap
+                        return (
+                          <button
+                            key={a.id}
+                            type="button"
+                            onClick={() => applySaved(a.id)}
+                            disabled={isSubmitting}
+                            className={`flex items-start gap-3 p-4 rounded-xl border text-left transition-all duration-200 ${
+                              isSelected
+                                ? "border-primary bg-primary/5 ring-1 ring-primary/30 shadow-sm"
+                                : "border-border hover:border-primary/60 hover:bg-secondary/10"
+                            }`}
+                          >
+                            <div
+                              className={`p-2 rounded-lg shrink-0 ${isSelected ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
+                            >
+                              <Icon className="size-4" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-semibold text-sm text-foreground">
+                                  {a.label}
+                                </span>
+                                {a.isDefault && (
+                                  <span className="text-[9px] font-medium bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full">
+                                    Default
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground truncate mt-1">
+                                {a.line1}, {a.city}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground/80 mt-0.5">
+                                {a.phone}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
-                    <div className="flex items-center gap-3 my-4">
-                      <div className="flex-1 h-px bg-border" />
-                      <span className="text-xs text-muted-foreground">or enter manually</span>
-                      <div className="flex-1 h-px bg-border" />
+
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-xs text-muted-foreground">
+                        {showManualAddressForm
+                          ? "Adding custom address"
+                          : "Using selected saved address"}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs font-semibold text-primary p-0 h-auto hover:bg-transparent hover:text-primary/80 transition-colors"
+                        onClick={() => setShowManualAddressForm(!showManualAddressForm)}
+                      >
+                        {showManualAddressForm ? "Cancel manual entry" : "Enter address manually"}
+                      </Button>
                     </div>
                   </div>
                 )}
 
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <Field label="Address line 1" required className="sm:col-span-2">
-                    <AddressAutocomplete
-                      value={addr.line1}
-                      onChange={(raw, parsed) => {
-                        if (parsed)
-                          setAddr((f) => ({
-                            ...f,
-                            line1: parsed.line1 || raw,
-                            city: parsed.city || f.city,
-                            pin: parsed.pin || f.pin,
-                          }));
-                        else setAddr((f) => ({ ...f, line1: raw }));
-                      }}
-                      placeholder="House / flat no, street"
-                    />
-                  </Field>
-                  <Field label="Address line 2">
-                    <Input
-                      value={addr.line2}
-                      onChange={(e) => setAddr({ ...addr, line2: e.target.value })}
-                      placeholder="Area, colony"
-                      disabled={isSubmitting}
-                    />
-                  </Field>
-                  <Field label="Landmark">
-                    <Input
-                      value={addr.landmark}
-                      onChange={(e) => setAddr({ ...addr, landmark: e.target.value })}
-                      placeholder="Near…"
-                      disabled={isSubmitting}
-                    />
-                  </Field>
-                  <Field label="City">
-                    <Input
-                      value={addr.city}
-                      onChange={(e) => setAddr({ ...addr, city: e.target.value })}
-                      disabled={isSubmitting}
-                    />
-                  </Field>
-                  <Field label="Pincode" required>
-                    <Input
-                      value={addr.pin}
-                      onChange={(e) => setAddr({ ...addr, pin: e.target.value })}
-                      disabled={isSubmitting}
-                    />
-                  </Field>
-                  <Field label="Phone" required>
-                    <Input
-                      value={addr.phone}
-                      onChange={(e) => setAddr({ ...addr, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
-                      disabled={isSubmitting}
-                      maxLength={10}
-                      placeholder="10-digit mobile number"
-                    />
-                  </Field>
-                </div>
-                <div className="mt-4">
-                  <Label>Address type</Label>
-                  <RadioGroup
-                    value={addr.type}
-                    onValueChange={(v) => setAddr({ ...addr, type: v })}
-                    className="flex gap-4 mt-2"
-                    disabled={isSubmitting}
-                  >
-                    {["Home", "Work", "Other"].map((t) => (
-                      <label key={t} className="flex items-center gap-2 text-sm">
-                        <RadioGroupItem value={t} /> {t}
-                      </label>
-                    ))}
-                  </RadioGroup>
-                </div>
-                <Field label="Delivery instructions" className="mt-4">
+                {showManualAddressForm && (
+                  <div className="grid sm:grid-cols-2 gap-4 border border-dashed border-border/80 rounded-2xl p-5 bg-secondary/10 animate-slideDown">
+                    <Field label="Address line 1" required className="sm:col-span-2">
+                      <AddressAutocomplete
+                        value={addr.line1}
+                        onChange={(raw, parsed) => {
+                          if (parsed)
+                            setAddr((f) => ({
+                              ...f,
+                              line1: parsed.line1 || raw,
+                              city: parsed.city || f.city,
+                              pin: parsed.pin || f.pin,
+                            }));
+                          else setAddr((f) => ({ ...f, line1: raw }));
+                        }}
+                        placeholder="House / flat no, street"
+                      />
+                    </Field>
+                    <Field label="Address line 2">
+                      <Input
+                        value={addr.line2}
+                        onChange={(e) => setAddr({ ...addr, line2: e.target.value })}
+                        placeholder="Area, colony"
+                        disabled={isSubmitting}
+                      />
+                    </Field>
+                    <Field label="Landmark">
+                      <Input
+                        value={addr.landmark}
+                        onChange={(e) => setAddr({ ...addr, landmark: e.target.value })}
+                        placeholder="Near…"
+                        disabled={isSubmitting}
+                      />
+                    </Field>
+                    <Field label="City">
+                      <Input
+                        value={addr.city}
+                        onChange={(e) => setAddr({ ...addr, city: e.target.value })}
+                        disabled={isSubmitting}
+                      />
+                    </Field>
+                    <Field label="Pincode" required>
+                      <Input
+                        value={addr.pin}
+                        onChange={(e) => setAddr({ ...addr, pin: e.target.value })}
+                        disabled={isSubmitting}
+                      />
+                    </Field>
+                    <Field label="Phone" required>
+                      <Input
+                        value={addr.phone}
+                        onChange={(e) =>
+                          setAddr({
+                            ...addr,
+                            phone: e.target.value.replace(/\D/g, "").slice(0, 10),
+                          })
+                        }
+                        disabled={isSubmitting}
+                        maxLength={10}
+                        placeholder="10-digit mobile number"
+                      />
+                    </Field>
+                    <div className="sm:col-span-2">
+                      <Label>Address type</Label>
+                      <RadioGroup
+                        value={addr.type}
+                        onValueChange={(v) => setAddr({ ...addr, type: v })}
+                        className="flex gap-4 mt-2"
+                        disabled={isSubmitting}
+                      >
+                        {["Home", "Work", "Other"].map((t) => (
+                          <label key={t} className="flex items-center gap-2 text-sm cursor-pointer">
+                            <RadioGroupItem value={t} /> {t}
+                          </label>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                  </div>
+                )}
+
+                <Field label="Delivery instructions" className="pt-2">
                   <Textarea
                     rows={3}
                     value={addr.notes}
@@ -539,7 +733,12 @@ export default function CheckoutPage() {
                   <Field label="Phone" required>
                     <Input
                       value={contact.phone}
-                      onChange={(e) => setContact({ ...contact, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                      onChange={(e) =>
+                        setContact({
+                          ...contact,
+                          phone: e.target.value.replace(/\D/g, "").slice(0, 10),
+                        })
+                      }
                       disabled={isSubmitting}
                       maxLength={10}
                       placeholder="10-digit mobile number"
@@ -704,7 +903,8 @@ export default function CheckoutPage() {
           <div className="bg-card border border-border rounded-2xl p-6 max-w-sm w-full shadow-lg text-center">
             <h3 className="font-display font-semibold text-lg">Sign in to save your order</h3>
             <p className="text-sm text-muted-foreground mt-2">
-              If you continue as a guest, your order details and tracking won't be saved to an account.
+              If you continue as a guest, your order details and tracking won't be saved to an
+              account.
             </p>
             <div className="mt-6 flex flex-col gap-3">
               <Button onClick={() => router.push("/auth/login?redirect=/checkout")}>
@@ -724,6 +924,49 @@ export default function CheckoutPage() {
           </div>
         </div>
       )}
+
+      {/* Sticky Mobile Floating Checkout Action Bar */}
+      <div className="fixed bottom-0 inset-x-0 z-40 bg-card/95 backdrop-blur-md border-t border-border p-3 sm:p-4 lg:hidden shadow-2xl">
+        <div className="flex items-center justify-between gap-3 max-w-md mx-auto">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              Total Payable
+            </p>
+            <p className="text-lg font-display font-bold text-foreground leading-none mt-0.5">
+              {inr(total)}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {step > 0 && (
+              <Button variant="outline" size="sm" onClick={back} disabled={isSubmitting}>
+                <ChevronLeft className="size-4" />
+              </Button>
+            )}
+            {step < 3 ? (
+              <Button size="sm" onClick={next} disabled={isSubmitting} className="font-medium">
+                Next <ChevronRight className="size-4 ml-1" />
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={placeOrder}
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold"
+                disabled={
+                  !agree ||
+                  !contact.name ||
+                  !contact.phone ||
+                  !addr.line1 ||
+                  !addr.pin ||
+                  isSubmitting
+                }
+              >
+                <MessageCircle className="size-4 mr-1.5" />
+                {isSubmitting ? "Placing..." : "Place Order"}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
     </SiteLayout>
   );
 }

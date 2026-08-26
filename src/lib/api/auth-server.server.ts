@@ -24,9 +24,9 @@ export async function resolveUserIdFromToken(idToken?: string) {
   } catch (err) {
     console.error(
       "resolveUserIdFromToken: ID Token verification failed. " +
-      `Client Project ID is: ${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}. ` +
-      "Error:",
-      err
+        `Client Project ID is: ${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}. ` +
+        "Error:",
+      err,
     );
     return null;
   }

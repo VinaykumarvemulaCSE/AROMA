@@ -14,16 +14,14 @@ function requireCloudinaryConfig() {
   const api_secret = (
     process.env.CLOUDINARY_API_SECRET || process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET
   )?.trim();
-  
+
   if (!cloud_name || !api_key || !api_secret) {
     const missing = [];
     if (!cloud_name) missing.push("CLOUDINARY_CLOUD_NAME");
     if (!api_key) missing.push("CLOUDINARY_API_KEY");
     if (!api_secret) missing.push("CLOUDINARY_API_SECRET");
-    
-    throw new Error(
-      `Cloudinary is not fully configured. Missing: ${missing.join(", ")}`,
-    );
+
+    throw new Error(`Cloudinary is not fully configured. Missing: ${missing.join(", ")}`);
   }
   return { cloud_name, api_key, api_secret, secure: true };
 }

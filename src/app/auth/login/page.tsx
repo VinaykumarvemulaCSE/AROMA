@@ -2,30 +2,40 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { useAuth } from "@/lib/store/auth";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import {
-  googleAuthErrorMessage,
-  signInWithGoogle,
-  syncFirebaseUser,
-} from "@/lib/auth/google";
+import { googleAuthErrorMessage, signInWithGoogle, syncFirebaseUser } from "@/lib/auth/google";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect");
-  
+  const user = useAuth((s) => s.user);
+  const initialized = useAuth((s) => s.initialized);
+
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Auto redirect if already signed in
+  useEffect(() => {
+    if (initialized && user) {
+      if (redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")) {
+        router.push(redirectTo);
+      } else {
+        router.push("/profile");
+      }
+    }
+  }, [initialized, user, redirectTo, router]);
 
   const goAfterLogin = () => {
     if (redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")) {
@@ -40,8 +50,8 @@ function LoginForm() {
     setLoading(true);
     try {
       const cred = await signInWithEmailAndPassword(auth, email, pwd);
-      await syncFirebaseUser(cred.user);
-      toast.success("Welcome back!");
+      const mapped = await syncFirebaseUser(cred.user);
+      toast.success(`Welcome back, ${mapped.name}!`);
       goAfterLogin();
     } catch (err: unknown) {
       let message = "Sign in failed. Check your credentials.";
@@ -77,7 +87,7 @@ function LoginForm() {
         redirectTo: redirectTo ?? "/profile",
       });
       if (result.method === "redirect") return;
-      toast.success(`Welcome, ${result.user.displayName ?? "there"}!`);
+      toast.success(`Welcome, ${result.mappedUser?.name || result.user.displayName || "there"}!`);
       goAfterLogin();
     } catch (err: unknown) {
       const code = err && typeof err === "object" && "code" in err ? String(err.code) : "";
@@ -194,7 +204,9 @@ function LoginForm() {
       <p className="text-center text-sm text-muted-foreground mt-4">
         New here?{" "}
         <Link
-          href={redirectTo ? `/auth/signup?redirect=${encodeURIComponent(redirectTo)}` : "/auth/signup"}
+          href={
+            redirectTo ? `/auth/signup?redirect=${encodeURIComponent(redirectTo)}` : "/auth/signup"
+          }
           className="text-primary font-medium"
         >
           Create an account

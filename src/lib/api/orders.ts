@@ -86,7 +86,9 @@ export const createOrder = async (rawData: unknown) => {
     if (data.idToken) {
       userId = await resolveUserIdFromToken(data.idToken);
       if (!userId) {
-        throw new Error("Could not verify your authenticated session. Please sign out and sign in again to refresh your session.");
+        throw new Error(
+          "Could not verify your authenticated session. Please sign out and sign in again to refresh your session.",
+        );
       }
     }
 
@@ -191,13 +193,7 @@ export const createOrder = async (rawData: unknown) => {
       customerName: data.contact.name,
       customerEmail: data.contact.email || "",
       customerPhone: data.contact.phone,
-      address: [
-        data.addr.line1,
-        data.addr.line2,
-        data.addr.landmark,
-        data.addr.city,
-        data.addr.pin,
-      ]
+      address: [data.addr.line1, data.addr.line2, data.addr.landmark, data.addr.city, data.addr.pin]
         .filter(Boolean)
         .join(", "),
       items: validatedItems,

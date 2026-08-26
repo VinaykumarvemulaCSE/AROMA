@@ -10,7 +10,7 @@ import { useCoupons } from "@/lib/store/coupon";
 import { useMenu } from "@/lib/store/menu";
 import { useReviews } from "@/lib/store/reviews";
 import { completeGoogleRedirectSignIn, consumeAuthRedirect } from "./google";
-import { mapFirebaseUser } from "./session";
+import { mapFirebaseUser, syncFirestoreUserDoc } from "./session";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const setUser = useAuth((s) => s.setUser);
@@ -31,14 +31,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [router]);
 
-  // Sync Firebase auth state into Zustand store
+  // Sync Firebase auth state into Zustand store & Firestore
   useEffect(() => {
     const unsubscribe = onIdTokenChanged(
       auth,
       async (firebaseUser) => {
         try {
           if (firebaseUser) {
-            setUser(await mapFirebaseUser(firebaseUser));
+            const mapped = await mapFirebaseUser(firebaseUser);
+            setUser(mapped);
+            void syncFirestoreUserDoc(firebaseUser, mapped);
           } else {
             clearUser();
           }
