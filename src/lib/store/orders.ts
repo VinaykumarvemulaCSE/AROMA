@@ -176,6 +176,7 @@ export const useOrders = create<OrdersState>()((set) => ({
     try {
       await deleteDoc(orderRef);
     } catch (error: any) {
+      
       console.warn("Firestore deleteDoc encountered issue, applying soft-delete fallback:", error);
       try {
         await updateDoc(orderRef, { isDeleted: true, status: "Cancelled" });
