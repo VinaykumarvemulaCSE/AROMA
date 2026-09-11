@@ -81,7 +81,6 @@ export function getAppUrl(): string {
   const appUrl =
     process.env.APP_URL ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    "https://aroma-cafe-072007.vercel.app";
+    "https://aromacafe.eu.cc";
   return appUrl.endsWith("/") ? appUrl.slice(0, -1) : appUrl;
 }

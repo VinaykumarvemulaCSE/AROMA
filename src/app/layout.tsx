@@ -11,6 +11,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://aromacafe.eu.cc"),
   title: "Aroma Cafe & Restaurant — Nalgonda",
   description:
     "Specialty coffee, fresh-baked goods and fine dining in the heart of Nalgonda. Order online or reserve a table.",
