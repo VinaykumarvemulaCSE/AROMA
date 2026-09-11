@@ -25,9 +25,22 @@ export const metadata: Metadata = {
     title: "Aroma Cafe & Restaurant — Nalgonda",
     description: "Specialty coffee, fresh-baked goods and fine dining in Nalgonda.",
     type: "website",
+    url: "https://aromacafe.eu.cc",
+    siteName: "Aroma Cafe & Restaurant",
+    images: [
+      {
+        url: "/icon.png",
+        width: 800,
+        height: 800,
+        alt: "Aroma Cafe & Restaurant — Nalgonda",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
+    title: "Aroma Cafe & Restaurant — Nalgonda",
+    description: "Specialty coffee, fresh-baked goods and fine dining in Nalgonda.",
+    images: ["/icon.png"],
   },
 };
 
