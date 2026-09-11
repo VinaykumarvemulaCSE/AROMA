@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { sendPasswordResetEmail } from "@/lib/api/password-reset-email";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/lib/store/auth";
 import { SiteLayout } from "@/components/layout/SiteLayout";
@@ -117,11 +118,18 @@ function LoginForm() {
       return;
     }
     try {
-      await sendPasswordResetEmail(auth, email);
-      toast.success("Password reset email sent. Please check your inbox.");
+      setLoading(true);
+      const res = await sendPasswordResetEmail({ email });
+      if (res && "error" in res && res.error) {
+        toast.error(res.error);
+      } else {
+        toast.success("Password reset email sent. Please check your inbox.");
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to send password reset email.";
       toast.error(message);
+    } finally {
+      setLoading(false);
     }
   };
 

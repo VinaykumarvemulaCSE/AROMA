@@ -23,11 +23,22 @@ export const sendCustomVerificationEmail = async (rawData: unknown) => {
       handleCodeInApp: true,
     };
 
-    const link = await auth.generateEmailVerificationLink(data.email, actionCodeSettings);
+    const rawLink = await auth.generateEmailVerificationLink(data.email, actionCodeSettings);
+
+    let verificationLink = rawLink;
+    try {
+      const parsedUrl = new URL(rawLink);
+      const oobCode = parsedUrl.searchParams.get("oobCode");
+      if (oobCode) {
+        verificationLink = `${appUrl}/auth/verify?mode=verifyEmail&oobCode=${encodeURIComponent(oobCode)}`;
+      }
+    } catch {
+      // fallback to rawLink
+    }
 
     const result = await sendVerificationEmailInternal({
       email: data.email,
-      verificationLink: link,
+      verificationLink,
     });
     assertEmailSent(result, "verification email");
 

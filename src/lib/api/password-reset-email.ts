@@ -20,14 +20,26 @@ export const sendPasswordResetEmail = async (rawData: unknown) => {
 
     const auth = await getAdminAuth();
     const appUrl = getAppUrl();
-    const link = await auth.generatePasswordResetLink(data.email, {
+    const rawLink = await auth.generatePasswordResetLink(data.email, {
       url: `${appUrl}/auth/login`,
       handleCodeInApp: true,
     });
 
+    // Transform default firebaseapp.com link to branded custom domain URL
+    let resetLink = rawLink;
+    try {
+      const parsedUrl = new URL(rawLink);
+      const oobCode = parsedUrl.searchParams.get("oobCode");
+      if (oobCode) {
+        resetLink = `${appUrl}/auth/reset-password?oobCode=${encodeURIComponent(oobCode)}`;
+      }
+    } catch {
+      // fallback to rawLink
+    }
+
     const result = await sendPasswordResetEmailInternal({
       email: data.email,
-      resetLink: link,
+      resetLink,
     });
     assertEmailSent(result, "password reset email");
     return { success: true as const, error: null };
