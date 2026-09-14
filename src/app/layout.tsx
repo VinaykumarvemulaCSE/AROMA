@@ -59,12 +59,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${poppins.variable}`}>
       <head>
-        <link rel="preconnect" href="https://images.unsplash.com" />
+        <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
-        <link rel="preconnect" href="https://firestore.googleapis.com" />
-        <link rel="dns-prefetch" href="https://firestore.googleapis.com" />
-        <link rel="preconnect" href="https://aroma-cafe-79055.firebaseapp.com" />
-        <link rel="preconnect" href="https://apis.google.com" />
+        <link
+          rel="preload"
+          as="image"
+          href="https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=1000&q=75"
+          fetchPriority="high"
+        />
       </head>
       <body>
         <Providers>{children}</Providers>

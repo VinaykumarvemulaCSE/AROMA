@@ -28,7 +28,7 @@ import { StoreStatusBadge } from "@/components/store/StoreStatusBadge";
 
 const heroSlides = [
   {
-    img: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=1200&q=75",
+    img: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=1000&q=75",
     title: "Brewed with love.",
     sub: "Single-origin coffee, hand-pulled every morning.",
   },
@@ -63,9 +63,16 @@ export default function Home() {
     fetchImages();
   }, [fetchImages]);
 
+  // Delay auto-rotation so initial page load and Speed Index settle cleanly
   useEffect(() => {
-    const t = setInterval(() => setSlide((s) => (s + 1) % heroSlides.length), 5000);
-    return () => clearInterval(t);
+    let t: ReturnType<typeof setInterval>;
+    const timer = setTimeout(() => {
+      t = setInterval(() => setSlide((s) => (s + 1) % heroSlides.length), 7000);
+    }, 10000);
+    return () => {
+      clearTimeout(timer);
+      if (t) clearInterval(t);
+    };
   }, []);
 
   const liveReviews = useReviews((s) => s.reviews);
@@ -106,6 +113,7 @@ export default function Home() {
                 priority={i === 0}
                 loading={i === 0 ? "eager" : "lazy"}
                 fetchPriority={i === 0 ? "high" : "auto"}
+                unoptimized={i === 0}
                 sizes="100vw"
                 className="object-cover"
                 quality={75}
