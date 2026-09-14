@@ -11,7 +11,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "set-admin": "npx tsx --env-file=.env set-admin-claims.ts",
+    "set-admin-password": "npx tsx --env-file=.env scripts/set-admin-password.ts"
   },
   "dependencies": {
     "@googlemaps/js-api-loader": "^2.1.1",

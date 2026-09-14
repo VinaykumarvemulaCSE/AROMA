@@ -90,18 +90,23 @@ export default function Home() {
         {heroSlides.map((s, i) => (
           <div
             key={i}
-            className={`absolute inset-0 transition-opacity duration-1000 ${i === slide ? "opacity-100" : "opacity-0"}`}
-            style={{
-              backgroundImage: `url(${s.img})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
-            role="img"
-            aria-label={s.title}
-          />
+            className={`absolute inset-0 transition-opacity duration-700 ${
+              i === slide ? "opacity-100 z-0" : "opacity-0 -z-10 pointer-events-none"
+            }`}
+          >
+            <Image
+              src={s.img}
+              alt={s.title}
+              fill
+              priority={i === 0}
+              sizes="100vw"
+              className="object-cover"
+              quality={75}
+            />
+          </div>
         ))}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/70" />
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-end pb-16 text-white">
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/70 z-1" />
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-end pb-16 text-white z-2">
           <div className="flex flex-wrap items-center gap-2 text-sm mb-1">
             <StoreStatusBadge />
             <span className="flex items-center gap-1 bg-white/15 backdrop-blur px-3 py-1 rounded-full text-xs">
@@ -137,11 +142,16 @@ export default function Home() {
                 Reserve Table
               </Button>
             </Link>
-            <a href={`tel:${settings?.phone || ""}`} className="hidden sm:inline-flex">
+            <a
+              href={`tel:${settings?.phone || ""}`}
+              className="hidden sm:inline-flex"
+              aria-label="Call Aroma Cafe"
+            >
               <Button
                 size="lg"
                 variant="ghost"
                 className="text-white hover:bg-white/10 hover:text-white"
+                aria-label="Call Aroma Cafe"
               >
                 <Phone className="size-4 mr-2" /> Call
               </Button>
@@ -149,11 +159,13 @@ export default function Home() {
             <a
               href={`https://wa.me/${formatWhatsAppNumber(settings?.whatsapp || "")}`}
               className="hidden sm:inline-flex"
+              aria-label="Chat with Aroma Cafe on WhatsApp"
             >
               <Button
                 size="lg"
                 variant="ghost"
                 className="text-white hover:bg-white/10 hover:text-white"
+                aria-label="Chat with Aroma Cafe on WhatsApp"
               >
                 <MessageCircle className="size-4 mr-2" /> WhatsApp
               </Button>
@@ -174,8 +186,8 @@ export default function Home() {
               placeholder="Search dishes…"
               className="border-0 focus-visible:ring-0 text-foreground bg-transparent min-w-0"
             />
-            <Link href={`/menu?q=${q}`}>
-              <Button size="sm" className="rounded-full shrink-0">
+            <Link href={`/menu?q=${q}`} aria-label="Search dishes on menu">
+              <Button size="sm" className="rounded-full shrink-0" aria-label="Find dishes">
                 Find
               </Button>
             </Link>
@@ -187,7 +199,9 @@ export default function Home() {
                 key={i}
                 onClick={() => setSlide(i)}
                 aria-label={`Go to slide ${i + 1}`}
-                className={`h-1.5 rounded-full transition-all ${i === slide ? "bg-white w-8" : "bg-white/40 w-4"}`}
+                className={`h-1.5 rounded-full transition-colors duration-300 ${
+                  i === slide ? "bg-white w-8" : "bg-white/40 w-4"
+                }`}
               />
             ))}
           </div>
@@ -330,6 +344,7 @@ export default function Home() {
                 <Link
                   href="/gallery"
                   key={img.id}
+                  aria-label={img.caption || "View gallery photo"}
                   className="relative block aspect-square rounded-2xl overflow-hidden"
                 >
                   <Image

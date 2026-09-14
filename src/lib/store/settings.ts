@@ -38,6 +38,7 @@ export type Settings = {
   flashSaleText?: string;
   flashSaleCode?: string;
   flashSaleEndHour?: number;
+  flashSaleExpiresAt?: string;
   flashSaleBadge?: string;
 };
 
@@ -83,6 +84,7 @@ export const DEFAULTS: Settings = {
   flashSaleText: "Flat 20% OFF on all Starters & Shakes",
   flashSaleCode: "AROMA20",
   flashSaleEndHour: 23,
+  flashSaleExpiresAt: "",
   flashSaleBadge: "FLASH DEAL",
 };
 

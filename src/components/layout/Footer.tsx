@@ -64,9 +64,9 @@ export function Footer() {
         </div>
 
         <div>
-          <h4 className="font-display text-sm font-semibold uppercase tracking-wider">
+          <h3 className="font-display text-sm font-semibold uppercase tracking-wider">
             Quick Links
-          </h4>
+          </h3>
           <ul className="mt-4 space-y-2 text-sm text-primary-foreground/80">
             <li>
               <Link href="/menu" className="hover:text-accent">
@@ -97,7 +97,7 @@ export function Footer() {
         </div>
 
         <div>
-          <h4 className="font-display text-sm font-semibold uppercase tracking-wider">Contact</h4>
+          <h3 className="font-display text-sm font-semibold uppercase tracking-wider">Contact</h3>
           <ul className="mt-4 space-y-2 text-sm text-primary-foreground/80">
             <li className="flex items-start gap-2">
               <MapPin className="size-4 mt-0.5 shrink-0" />
@@ -115,7 +115,7 @@ export function Footer() {
         </div>
 
         <div>
-          <h4 className="font-display text-sm font-semibold uppercase tracking-wider">Hours</h4>
+          <h3 className="font-display text-sm font-semibold uppercase tracking-wider">Hours</h3>
           <p className="mt-4 text-sm text-primary-foreground/80">{info.hours}</p>
           <p className="mt-2 text-xs text-primary-foreground/60">Last order 10:30 PM</p>
         </div>

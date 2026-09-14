@@ -31,7 +31,7 @@ export function MenuCard({ item, onOpen }: { item: MenuItem; onOpen?: (id: strin
             src={optimizeImage(item.image, 600)}
             alt={item.name}
             fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 350px"
             className="object-cover group-hover:scale-108 transition-transform duration-500"
           />
         </button>
@@ -52,7 +52,7 @@ export function MenuCard({ item, onOpen }: { item: MenuItem; onOpen?: (id: strin
             </span>
           )}
           {item.tags.includes("Vegan") && (
-            <span className="px-2.5 py-1 text-[10px] font-bold rounded-full bg-green-600 text-white shadow-sm flex items-center gap-0.5">
+            <span className="px-2.5 py-1 text-[10px] font-bold rounded-full bg-emerald-800 text-white shadow-sm flex items-center gap-0.5">
               🌿 Vegan
             </span>
           )}

@@ -291,6 +291,64 @@ export default function AdminSettings() {
               />
             </div>
 
+            {/* Current Deal Banner Status */}
+            <div className="pt-1">
+              {(() => {
+                if (s.flashSaleEnabled === false) {
+                  return (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border">
+                      <span className="size-1.5 rounded-full bg-stone-400" />
+                      Status: Inactive (Disabled)
+                    </span>
+                  );
+                }
+                const expiryTime = s.flashSaleExpiresAt ? new Date(s.flashSaleExpiresAt).getTime() : null;
+                const isExpired = expiryTime ? expiryTime <= Date.now() : false;
+
+                if (isExpired && expiryTime) {
+                  const d = new Date(expiryTime);
+                  return (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                        <span className="size-1.5 rounded-full bg-rose-500" />
+                        Expired on {d.toLocaleDateString()} {d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · Hidden from customers
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const d = new Date(Date.now() + 2 * 3600 * 1000);
+                          upd("flashSaleExpiresAt", d.toISOString());
+                          toast.success("Timer extended by 2 hours!");
+                        }}
+                        className="text-xs font-semibold text-primary underline hover:opacity-80 cursor-pointer"
+                      >
+                        + Extend 2h
+                      </button>
+                    </div>
+                  );
+                }
+
+                if (expiryTime) {
+                  const diff = expiryTime - Date.now();
+                  const hours = Math.floor(diff / (1000 * 60 * 60));
+                  const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                  return (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Active · Expires in {hours > 0 ? `${hours}h ` : ""}{mins}m (One-time)
+                    </span>
+                  );
+                }
+
+                return (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    <span className="size-1.5 rounded-full bg-emerald-500" />
+                    Active (Default Hours)
+                  </span>
+                );
+              })()}
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
               <Field label="Badge Label">
                 <Input
@@ -316,17 +374,86 @@ export default function AdminSettings() {
               />
             </Field>
 
-            <Field label="Daily Expiry Hour (Countdown Reset)">
-              <select
-                value={s.flashSaleEndHour ?? 23}
-                onChange={(e) => upd("flashSaleEndHour", Number(e.target.value))}
-                className="mt-1.5 h-9 w-full rounded-md border border-border bg-card px-3 text-sm"
-              >
-                <option value={21}>9:00 PM (Dinner Special)</option>
-                <option value={22}>10:00 PM (Late Night Special)</option>
-                <option value={23}>11:00 PM (Midnight Closing)</option>
-                <option value={15}>3:00 PM (Afternoon Lunch Rush)</option>
-              </select>
+            <Field label="Expiration Date & Time (One-Time Timer)">
+              <div className="space-y-2">
+                <Input
+                  type="datetime-local"
+                  value={(() => {
+                    if (s.flashSaleExpiresAt) {
+                      const d = new Date(s.flashSaleExpiresAt);
+                      if (!isNaN(d.getTime())) {
+                        const pad = (n: number) => String(n).padStart(2, "0");
+                        const yyyy = d.getFullYear();
+                        const mm = pad(d.getMonth() + 1);
+                        const dd = pad(d.getDate());
+                        const hh = pad(d.getHours());
+                        const min = pad(d.getMinutes());
+                        return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+                      }
+                    }
+                    return "";
+                  })()}
+                  onChange={(e) => {
+                    if (!e.target.value) {
+                      upd("flashSaleExpiresAt", "");
+                      return;
+                    }
+                    const d = new Date(e.target.value);
+                    upd("flashSaleExpiresAt", d.toISOString());
+                  }}
+                />
+
+                {/* Quick Presets */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[11px] text-muted-foreground mr-1">Quick presets:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const d = new Date(Date.now() + 2 * 3600 * 1000);
+                      upd("flashSaleExpiresAt", d.toISOString());
+                    }}
+                    className="px-2 py-1 text-xs rounded border border-border bg-secondary hover:bg-secondary/80 cursor-pointer font-medium"
+                  >
+                    +2 Hours
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const d = new Date(Date.now() + 6 * 3600 * 1000);
+                      upd("flashSaleExpiresAt", d.toISOString());
+                    }}
+                    className="px-2 py-1 text-xs rounded border border-border bg-secondary hover:bg-secondary/80 cursor-pointer font-medium"
+                  >
+                    +6 Hours
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const d = new Date();
+                      d.setHours(23, 59, 0, 0);
+                      upd("flashSaleExpiresAt", d.toISOString());
+                    }}
+                    className="px-2 py-1 text-xs rounded border border-border bg-secondary hover:bg-secondary/80 cursor-pointer font-medium"
+                  >
+                    Today 11:59 PM
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const d = new Date();
+                      d.setDate(d.getDate() + 1);
+                      d.setHours(23, 59, 0, 0);
+                      upd("flashSaleExpiresAt", d.toISOString());
+                    }}
+                    className="px-2 py-1 text-xs rounded border border-border bg-secondary hover:bg-secondary/80 cursor-pointer font-medium"
+                  >
+                    Tomorrow 11:59 PM
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Once this time is reached, the banner stops showing completely. It will not repeat or restart until you set a new time.
+                </p>
+              </div>
             </Field>
           </div>
         </Card>

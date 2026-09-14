@@ -82,18 +82,22 @@ export function Header() {
 
             <div className="flex items-center gap-1 shrink-0">
               <ThemeToggle />
-              <a href={`tel:${info.phone}`} className="hidden sm:inline-flex">
-                <Button variant="ghost" size="icon">
+              <a
+                href={`tel:${info.phone}`}
+                className="hidden sm:inline-flex"
+                aria-label={`Call ${info.name}`}
+              >
+                <Button variant="ghost" size="icon" aria-label={`Call ${info.name}`}>
                   <Phone className="size-4" />
                 </Button>
               </a>
-              <Link href="/menu">
-                <Button variant="ghost" size="icon">
+              <Link href="/menu" aria-label="Search dishes on menu">
+                <Button variant="ghost" size="icon" aria-label="Search dishes">
                   <Search className="size-4" />
                 </Button>
               </Link>
-              <Link href="/cart" className="relative">
-                <Button variant="ghost" size="icon">
+              <Link href="/cart" className="relative" aria-label={`View shopping cart with ${count} items`}>
+                <Button variant="ghost" size="icon" aria-label={`View shopping cart with ${count} items`}>
                   <ShoppingBag className="size-4" />
                 </Button>
                 {count > 0 && (
@@ -102,8 +106,15 @@ export function Header() {
                   </span>
                 )}
               </Link>
-              <Link href={user ? "/profile" : "/auth/login"}>
-                <Button variant="ghost" size="icon">
+              <Link
+                href={user ? "/profile" : "/auth/login"}
+                aria-label={user ? "View your profile" : "Sign in to your account"}
+              >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={user ? "View your profile" : "Sign in to your account"}
+                >
                   <User className="size-4" />
                 </Button>
               </Link>
