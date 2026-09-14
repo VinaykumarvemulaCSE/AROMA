@@ -1,13 +1,21 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthProvider, FirestoreSync } from "@/lib/auth/AuthProvider";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import dynamic from "next/dynamic";
 import { useState } from "react";
 
+const AuthProvider = dynamic(
+  () => import("@/lib/auth/AuthProvider").then((m) => m.AuthProvider),
+  { ssr: false },
+);
+
+const FirestoreSync = dynamic(
+  () => import("@/lib/auth/AuthProvider").then((m) => m.FirestoreSync),
+  { ssr: false },
+);
+
 export function Providers({ children }: { children: React.ReactNode }) {
-  // Use useState to ensure the QueryClient is only created once per component instance
-  // when using Server Components, preventing cache from being shared across requests
   const [queryClient] = useState(() => new QueryClient());
 
   return (

@@ -1,7 +1,5 @@
 // src/lib/store/gallery.ts
 import { create } from "zustand";
-import { db } from "../firebase";
-import { collection, getDocs, addDoc, deleteDoc, doc } from "firebase/firestore";
 
 export type GalleryImage = {
   id: string;
@@ -45,6 +43,10 @@ export const useGallery = create<GalleryState>()((set, get) => ({
   fetchImages: async () => {
     set({ loading: true });
     try {
+      const [{ db }, { collection, getDocs }] = await Promise.all([
+        import("../firebase"),
+        import("firebase/firestore"),
+      ]);
       const snap = await getDocs(collection(db, "gallery"));
       const images = snap.docs.map((doc) => ({
         id: doc.id,
@@ -62,6 +64,10 @@ export const useGallery = create<GalleryState>()((set, get) => ({
 
   addImage: async (image) => {
     try {
+      const [{ db }, { addDoc, collection }] = await Promise.all([
+        import("../firebase"),
+        import("firebase/firestore"),
+      ]);
       const docRef = await addDoc(collection(db, "gallery"), {
         ...image,
         createdAt: Date.now(),
@@ -94,6 +100,10 @@ export const useGallery = create<GalleryState>()((set, get) => ({
         }
       }
 
+      const [{ db }, { deleteDoc, doc }] = await Promise.all([
+        import("../firebase"),
+        import("firebase/firestore"),
+      ]);
       await deleteDoc(doc(db, "gallery", id));
       set((state) => ({
         images: state.images.filter((img) => img.id !== id),

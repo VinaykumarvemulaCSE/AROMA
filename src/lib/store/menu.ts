@@ -1,15 +1,5 @@
 // src/lib/store/menu.ts
 import { create } from "zustand";
-import { db } from "../firebase";
-import {
-  collection,
-  doc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-} from "firebase/firestore";
 import { categories, type Category, type MenuItem } from "../mock/menu";
 
 export type { Category, MenuItem };
@@ -27,11 +17,19 @@ export const useMenu = create<MenuState>()((set, get) => ({
   menu: [],
 
   addMenuItem: async (item) => {
+    const [{ db }, { doc, setDoc }] = await Promise.all([
+      import("../firebase"),
+      import("firebase/firestore"),
+    ]);
     const id = `item-${Date.now()}`;
     await setDoc(doc(db, "menu_items", id), { ...item, id });
   },
 
   updateMenuItem: async (id, patch) => {
+    const [{ db }, { doc, updateDoc }] = await Promise.all([
+      import("../firebase"),
+      import("firebase/firestore"),
+    ]);
     await updateDoc(doc(db, "menu_items", id), patch);
   },
 
@@ -49,13 +47,25 @@ export const useMenu = create<MenuState>()((set, get) => ({
     } catch (e) {
       console.error("Failed to delete Cloudinary image for menu item:", e);
     }
+    const [{ db }, { doc, deleteDoc }] = await Promise.all([
+      import("../firebase"),
+      import("firebase/firestore"),
+    ]);
     await deleteDoc(doc(db, "menu_items", id));
   },
 
   listenToMenu: () => {
-    const q = query(collection(db, "menu_items"));
-    return onSnapshot(q, (snapshot) => {
-      set({ menu: snapshot.docs.map((doc) => doc.data() as MenuItem) });
-    });
+    let unsubscribe = () => {};
+    void (async () => {
+      const [{ db }, { collection, onSnapshot, query }] = await Promise.all([
+        import("../firebase"),
+        import("firebase/firestore"),
+      ]);
+      const q = query(collection(db, "menu_items"));
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        set({ menu: snapshot.docs.map((doc) => doc.data() as MenuItem) });
+      });
+    })();
+    return () => unsubscribe();
   },
 }));

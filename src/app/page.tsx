@@ -194,7 +194,7 @@ export default function Home() {
               placeholder="Search dishes…"
               className="border-0 focus-visible:ring-0 text-foreground bg-transparent min-w-0"
             />
-            <Link href={`/menu?q=${q}`} aria-label="Search dishes on menu">
+            <Link href={`/menu?q=${q}`} aria-label="Submit search for dishes">
               <Button size="sm" className="rounded-full shrink-0" aria-label="Find dishes">
                 Find
               </Button>
@@ -211,8 +211,8 @@ export default function Home() {
                 className="py-3 px-1.5 flex items-center justify-center min-h-[44px] min-w-[36px] focus:outline-none"
               >
                 <span
-                  className={`h-1.5 rounded-full transition-colors duration-300 block ${
-                    i === slide ? "bg-white w-8" : "bg-white/40 w-4"
+                  className={`h-1.5 w-6 rounded-full bg-white block transition-opacity duration-300 ${
+                    i === slide ? "opacity-100" : "opacity-35"
                   }`}
                 />
               </button>

@@ -1,7 +1,5 @@
 // src/lib/store/settings.ts
 import { create } from "zustand";
-import { db } from "../firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
 import { cafeInfo } from "../format";
 
 export const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
@@ -102,6 +100,10 @@ export const useSettings = create<SettingsState>()((set) => ({
   fetchSettings: async () => {
     set({ loading: true });
     try {
+      const [{ db }, { doc, getDoc }] = await Promise.all([
+        import("../firebase"),
+        import("firebase/firestore"),
+      ]);
       const snap = await getDoc(doc(db, "settings", "restaurant"));
       if (snap.exists()) {
         const data = snap.data();
@@ -124,6 +126,10 @@ export const useSettings = create<SettingsState>()((set) => ({
   },
 
   saveSettings: async (newSettings: Settings) => {
+    const [{ db }, { doc, setDoc }] = await Promise.all([
+      import("../firebase"),
+      import("firebase/firestore"),
+    ]);
     await setDoc(doc(db, "settings", "restaurant"), newSettings);
     set({ settings: newSettings });
   },

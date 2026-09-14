@@ -3,21 +3,8 @@
 // Admins approve/reject. Only "approved" reviews show on the public /reviews page.
 
 import { create } from "zustand";
-import { db } from "../firebase";
-import {
-  collection,
-  doc,
-  updateDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  orderBy,
-  where,
-  getDoc,
-} from "firebase/firestore";
 import { submitReview as submitReviewApi } from "../api/reviews";
 import { sendReviewApprovalEmail } from "../api/review-approval-email";
-import { auth } from "../firebase";
 
 export type ReviewStatus = "pending" | "approved" | "rejected";
 
@@ -57,6 +44,11 @@ export const useReviews = create<ReviewsState>()((set) => ({
   },
 
   setStatus: async (id, status) => {
+    const [{ db, auth }, { doc, getDoc, updateDoc }] = await Promise.all([
+      import("../firebase"),
+      import("firebase/firestore"),
+    ]);
+
     // Get review details before updating
     const reviewRef = doc(db, "reviews", id);
     const reviewSnap = await getDoc(reviewRef);
@@ -100,34 +92,50 @@ export const useReviews = create<ReviewsState>()((set) => ({
   },
 
   toggleFeatured: async (id, featured) => {
+    const [{ db }, { doc, updateDoc }] = await Promise.all([
+      import("../firebase"),
+      import("firebase/firestore"),
+    ]);
     await updateDoc(doc(db, "reviews", id), { featured });
   },
 
   remove: async (id) => {
+    const [{ db }, { doc, deleteDoc }] = await Promise.all([
+      import("../firebase"),
+      import("firebase/firestore"),
+    ]);
     await deleteDoc(doc(db, "reviews", id));
   },
 
   listenToReviews: (role = "public") => {
-    const q =
-      role === "admin"
-        ? query(collection(db, "reviews"), orderBy("date", "desc"))
-        : query(
-            collection(db, "reviews"),
-            where("status", "==", "approved"),
-            orderBy("date", "desc"),
-          );
+    let unsubscribe = () => {};
+    void (async () => {
+      const [{ db }, { collection, onSnapshot, query, orderBy, where }] = await Promise.all([
+        import("../firebase"),
+        import("firebase/firestore"),
+      ]);
+      const q =
+        role === "admin"
+          ? query(collection(db, "reviews"), orderBy("date", "desc"))
+          : query(
+              collection(db, "reviews"),
+              where("status", "==", "approved"),
+              orderBy("date", "desc"),
+            );
 
-    return onSnapshot(
-      q,
-      (snapshot) => {
-        set({
-          reviews: snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as StoredReview),
-        });
-      },
-      (error) => {
-        console.error("Error listening to reviews:", error);
-      },
-    );
+      unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          set({
+            reviews: snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as StoredReview),
+          });
+        },
+        (error) => {
+          console.error("Error listening to reviews:", error);
+        },
+      );
+    })();
+    return () => unsubscribe();
   },
 }));
 

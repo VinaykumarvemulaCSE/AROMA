@@ -18,28 +18,44 @@ function scheduleIdleTask(callback: () => void, immediate: boolean) {
     return () => {};
   }
 
-  type RequestIdleCallbackHandle = number;
-  type RequestIdleCallbackOptions = { timeout: number };
-  type WindowWithIdle = Window & {
-    requestIdleCallback?: (
-      cb: (deadline: { didTimeout: boolean; timeRemaining: () => number }) => void,
-      options?: RequestIdleCallbackOptions,
-    ) => RequestIdleCallbackHandle;
-    cancelIdleCallback?: (handle: RequestIdleCallbackHandle) => void;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let cancelled = false;
+
+  const trigger = () => {
+    if (cancelled) return;
+    type WindowWithIdle = Window & {
+      requestIdleCallback?: (
+        cb: (deadline: { didTimeout: boolean; timeRemaining: () => number }) => void,
+        options?: { timeout: number },
+      ) => number;
+    };
+    const win = window as WindowWithIdle;
+    if (typeof win.requestIdleCallback === "function") {
+      win.requestIdleCallback(
+        () => {
+          if (!cancelled) callback();
+        },
+        { timeout: 3500 },
+      );
+      return;
+    }
+    callback();
   };
 
-  const win = window as WindowWithIdle;
-  if (typeof win.requestIdleCallback === "function") {
-    const handle = win.requestIdleCallback(() => callback(), { timeout: 2000 });
-    return () => {
-      if (typeof win.cancelIdleCallback === "function") {
-        win.cancelIdleCallback(handle);
-      }
+  if (document.readyState === "complete") {
+    timer = setTimeout(trigger, 1500);
+  } else {
+    const onLoad = () => {
+      timer = setTimeout(trigger, 1500);
     };
+    window.addEventListener("load", onLoad, { once: true });
+    timer = setTimeout(trigger, 4000);
   }
 
-  const timer = setTimeout(callback, 1200);
-  return () => clearTimeout(timer);
+  return () => {
+    cancelled = true;
+    if (timer) clearTimeout(timer);
+  };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
