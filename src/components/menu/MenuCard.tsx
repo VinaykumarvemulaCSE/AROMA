@@ -28,11 +28,12 @@ export function MenuCard({ item, onOpen }: { item: MenuItem; onOpen?: (id: strin
           aria-label={`Open ${item.name}`}
         >
           <Image
-            src={optimizeImage(item.image, 600)}
+            src={optimizeImage(item.image, 480)}
             alt={item.name}
             fill
-            sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 350px"
+            sizes="(max-width: 640px) calc(100vw - 32px), (max-width: 1024px) 45vw, 350px"
             className="object-cover group-hover:scale-108 transition-transform duration-500"
+            quality={70}
           />
         </button>
         <div className="pointer-events-none absolute top-3 left-3 flex gap-1.5 flex-wrap z-10">

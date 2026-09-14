@@ -1,12 +1,25 @@
 import type { ReactNode } from "react";
+import dynamic from "next/dynamic";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { BottomNav } from "./BottomNav";
-import { FloatingCart } from "./FloatingCart";
 import { PageTransition } from "./PageTransition";
-import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { FlashSaleBanner } from "@/components/ui/FlashSaleBanner";
-import { Toaster } from "@/components/ui/sonner";
+
+const FloatingCart = dynamic(
+  () => import("./FloatingCart").then((mod) => mod.FloatingCart),
+  { ssr: false },
+);
+
+const PwaInstallPrompt = dynamic(
+  () => import("@/components/pwa/PwaInstallPrompt").then((mod) => mod.PwaInstallPrompt),
+  { ssr: false },
+);
+
+const Toaster = dynamic(
+  () => import("@/components/ui/sonner").then((mod) => mod.Toaster),
+  { ssr: false },
+);
 
 export function SiteLayout({ children }: { children: ReactNode }) {
   return (

@@ -28,17 +28,17 @@ import { StoreStatusBadge } from "@/components/store/StoreStatusBadge";
 
 const heroSlides = [
   {
-    img: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=1600&q=80",
+    img: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=1200&q=75",
     title: "Brewed with love.",
     sub: "Single-origin coffee, hand-pulled every morning.",
   },
   {
-    img: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1600&q=80",
+    img: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=75",
     title: "Slow food, fast service.",
     sub: "Fresh, seasonal plates from our kitchen to your table.",
   },
   {
-    img: "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1600&q=80",
+    img: "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1200&q=75",
     title: "A second home in Nalgonda.",
     sub: "Warm interiors, quiet corners, conversations that linger.",
   },
@@ -49,10 +49,12 @@ export default function Home() {
   const settings = useSettings((s) => s.settings);
   const fetchSettings = useSettings((s) => s.fetchSettings);
   const [slide, setSlide] = useState(0);
+  const [mounted, setMounted] = useState(false);
   const [q, setQ] = useState("");
   const { images, fetchImages, loading } = useGallery();
 
   useEffect(() => {
+    setMounted(true);
     fetchSettings();
   }, [fetchSettings]);
 
@@ -87,24 +89,30 @@ export default function Home() {
     <SiteLayout>
       {/* HERO */}
       <section className="relative h-[78vh] min-h-[560px] w-full overflow-hidden">
-        {heroSlides.map((s, i) => (
-          <div
-            key={i}
-            className={`absolute inset-0 transition-opacity duration-700 ${
-              i === slide ? "opacity-100 z-0" : "opacity-0 -z-10 pointer-events-none"
-            }`}
-          >
-            <Image
-              src={s.img}
-              alt={s.title}
-              fill
-              priority={i === 0}
-              sizes="100vw"
-              className="object-cover"
-              quality={75}
-            />
-          </div>
-        ))}
+        {heroSlides.map((s, i) => {
+          // Only render slide 0 on initial SSR/HTML so other slides don't compete for mobile bandwidth
+          if (i !== 0 && !mounted) return null;
+          return (
+            <div
+              key={i}
+              className={`absolute inset-0 transition-opacity duration-700 ${
+                i === slide ? "opacity-100 z-0" : "opacity-0 -z-10 pointer-events-none"
+              }`}
+            >
+              <Image
+                src={s.img}
+                alt={s.title}
+                fill
+                priority={i === 0}
+                loading={i === 0 ? "eager" : "lazy"}
+                fetchPriority={i === 0 ? "high" : "auto"}
+                sizes="100vw"
+                className="object-cover"
+                quality={75}
+              />
+            </div>
+          );
+        })}
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/70 z-1" />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-end pb-16 text-white z-2">
           <div className="flex flex-wrap items-center gap-2 text-sm mb-1">
@@ -193,16 +201,21 @@ export default function Home() {
             </Link>
           </form>
 
-          <div className="mt-6 flex gap-1.5" role="group" aria-label="Slideshow controls">
+          <div className="mt-6 flex items-center gap-1" role="group" aria-label="Slideshow controls">
             {heroSlides.map((_, i) => (
               <button
                 key={i}
+                type="button"
                 onClick={() => setSlide(i)}
                 aria-label={`Go to slide ${i + 1}`}
-                className={`h-1.5 rounded-full transition-colors duration-300 ${
-                  i === slide ? "bg-white w-8" : "bg-white/40 w-4"
-                }`}
-              />
+                className="py-3 px-1.5 flex items-center justify-center min-h-[44px] min-w-[36px] focus:outline-none"
+              >
+                <span
+                  className={`h-1.5 rounded-full transition-colors duration-300 block ${
+                    i === slide ? "bg-white w-8" : "bg-white/40 w-4"
+                  }`}
+                />
+              </button>
             ))}
           </div>
         </div>

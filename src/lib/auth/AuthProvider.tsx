@@ -1,6 +1,6 @@
-import { onIdTokenChanged } from "firebase/auth";
+import { onIdTokenChanged, type Unsubscribe } from "firebase/auth";
 import { useEffect, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/lib/store/auth";
 import { useOrders } from "@/lib/store/orders";
@@ -12,54 +12,108 @@ import { useReviews } from "@/lib/store/reviews";
 import { completeGoogleRedirectSignIn, consumeAuthRedirect } from "./google";
 import { mapFirebaseUser, syncFirestoreUserDoc } from "./session";
 
+function scheduleIdleTask(callback: () => void, immediate: boolean) {
+  if (immediate || typeof window === "undefined") {
+    callback();
+    return () => {};
+  }
+
+  type RequestIdleCallbackHandle = number;
+  type RequestIdleCallbackOptions = { timeout: number };
+  type WindowWithIdle = Window & {
+    requestIdleCallback?: (
+      cb: (deadline: { didTimeout: boolean; timeRemaining: () => number }) => void,
+      options?: RequestIdleCallbackOptions,
+    ) => RequestIdleCallbackHandle;
+    cancelIdleCallback?: (handle: RequestIdleCallbackHandle) => void;
+  };
+
+  const win = window as WindowWithIdle;
+  if (typeof win.requestIdleCallback === "function") {
+    const handle = win.requestIdleCallback(() => callback(), { timeout: 2000 });
+    return () => {
+      if (typeof win.cancelIdleCallback === "function") {
+        win.cancelIdleCallback(handle);
+      }
+    };
+  }
+
+  const timer = setTimeout(callback, 1200);
+  return () => clearTimeout(timer);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const setUser = useAuth((s) => s.setUser);
   const clearUser = useAuth((s) => s.clearUser);
   const setInitialized = useAuth((s) => s.setInitialized);
   const router = useRouter();
+  const pathname = usePathname();
+
+  const isAuthCriticalRoute =
+    pathname?.startsWith("/admin") ||
+    pathname?.startsWith("/profile") ||
+    pathname?.startsWith("/checkout") ||
+    pathname?.startsWith("/orders") ||
+    pathname?.startsWith("/auth");
 
   // Finish Google redirect sign-in (mobile / popup-blocked fallback)
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      const completed = await completeGoogleRedirectSignIn();
-      if (cancelled || !completed) return;
-      router.push(consumeAuthRedirect("/profile"));
-    })();
+    const cancelSchedule = scheduleIdleTask(() => {
+      void (async () => {
+        const completed = await completeGoogleRedirectSignIn();
+        if (cancelled || !completed) return;
+        router.push(consumeAuthRedirect("/profile"));
+      })();
+    }, isAuthCriticalRoute);
+
     return () => {
       cancelled = true;
+      cancelSchedule();
     };
-  }, [router]);
+  }, [router, isAuthCriticalRoute]);
 
   // Sync Firebase auth state into Zustand store & Firestore
   useEffect(() => {
-    const unsubscribe = onIdTokenChanged(
-      auth,
-      async (firebaseUser) => {
-        try {
-          if (firebaseUser) {
-            const mapped = await mapFirebaseUser(firebaseUser);
-            setUser(mapped);
-            void syncFirestoreUserDoc(firebaseUser, mapped);
-          } else {
-            clearUser();
-          }
-        } catch (err) {
-          console.error("Auth state sync failed:", err);
-          clearUser();
-        } finally {
-          setInitialized(true);
-        }
-      },
-      (err) => {
-        console.error("Auth listener error:", err);
-        clearUser();
-        setInitialized(true);
-      },
-    );
+    let unsub: Unsubscribe | null = null;
+    let cancelled = false;
 
-    return unsubscribe;
-  }, [setUser, clearUser, setInitialized]);
+    const cancelSchedule = scheduleIdleTask(() => {
+      if (cancelled) return;
+      unsub = onIdTokenChanged(
+        auth,
+        async (firebaseUser) => {
+          try {
+            if (firebaseUser) {
+              const mapped = await mapFirebaseUser(firebaseUser);
+              setUser(mapped);
+              void syncFirestoreUserDoc(firebaseUser, mapped);
+            } else {
+              clearUser();
+            }
+          } catch (err) {
+            console.error("Auth state sync failed:", err);
+            clearUser();
+          } finally {
+            setInitialized(true);
+          }
+        },
+        (err) => {
+          console.error("Auth listener error:", err);
+          clearUser();
+          setInitialized(true);
+        },
+      );
+    }, isAuthCriticalRoute);
+
+    return () => {
+      cancelled = true;
+      cancelSchedule();
+      if (unsub) {
+        unsub();
+      }
+    };
+  }, [setUser, clearUser, setInitialized, isAuthCriticalRoute]);
 
   return children;
 }
