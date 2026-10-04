@@ -37,6 +37,8 @@ export type Settings = {
   flashSaleCode?: string;
   flashSaleEndHour?: number;
   flashSaleExpiresAt?: string;
+  latitude?: number;
+  longitude?: number;
   flashSaleBadge?: string;
 };
 
@@ -62,7 +64,7 @@ export const DEFAULTS: Settings = {
   instagram: cafeInfo.instagram,
   facebook: cafeInfo.facebook,
   logoLetters: "A",
-  locationName: "Nalgonda",
+  locationName: "Hyderabad",
   deliveryFee: 40,
   maxPartySize: 20,
   bookingWindowDays: 30,
@@ -84,6 +86,8 @@ export const DEFAULTS: Settings = {
   flashSaleEndHour: 23,
   flashSaleExpiresAt: "",
   flashSaleBadge: "FLASH DEAL",
+  latitude: 17.4399,
+  longitude: 78.4017,
 };
 
 type SettingsState = {

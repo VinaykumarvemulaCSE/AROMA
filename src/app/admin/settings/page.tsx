@@ -8,11 +8,14 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { LocationPickerModal } from "@/components/LocationPickerModal";
+import { MapPin } from "lucide-react";
 import { useSettings, DEFAULTS, DAYS, type Settings } from "@/lib/store/settings";
 
 export default function AdminSettings() {
   const { settings, fetchSettings, saveSettings, loading } = useSettings();
   const [s, setS] = useState<Settings>(DEFAULTS);
+  const [showMapPicker, setShowMapPicker] = useState(false);
 
   useEffect(() => {
     fetchSettings().then(() => {
@@ -52,9 +55,69 @@ export default function AdminSettings() {
           <Field label="Address">
             <Textarea rows={2} value={s.address} onChange={(e) => upd("address", e.target.value)} />
           </Field>
-          <Field label="Google Maps URL">
-            <Input value={s.mapsUrl} onChange={(e) => upd("mapsUrl", e.target.value)} />
-          </Field>
+
+          {/* Cafe Store GPS Coordinates */}
+          <div className="bg-secondary/40 p-3 rounded-xl border border-border space-y-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <span className="text-xs font-semibold text-foreground">Store GPS Coordinates (Map HQ)</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="text-xs text-primary font-medium hover:underline cursor-pointer flex items-center gap-1"
+                  onClick={() => setShowMapPicker(true)}
+                >
+                  <MapPin className="size-3" /> Choose on Map
+                </button>
+                <span className="text-muted-foreground text-xs">•</span>
+                <button
+                  type="button"
+                  className="text-xs text-primary font-medium hover:underline cursor-pointer"
+                  onClick={() => {
+                    if (navigator.geolocation) {
+                      toast.loading("Detecting current device location...", { id: "gps-detect" });
+                      navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                          upd("latitude", pos.coords.latitude);
+                          upd("longitude", pos.coords.longitude);
+                          toast.success("Store GPS set to current location!", { id: "gps-detect" });
+                        },
+                        (err) => {
+                          toast.error(`GPS detection failed: ${err.message}`, { id: "gps-detect" });
+                        },
+                        { enableHighAccuracy: true }
+                      );
+                    } else {
+                      toast.error("Geolocation not supported by browser.");
+                    }
+                  }}
+                >
+                  Auto-Detect GPS
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[11px] text-muted-foreground">Store Latitude</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  value={s.latitude ?? 17.4399}
+                  onChange={(e) => upd("latitude", parseFloat(e.target.value) || 17.4399)}
+                  className="h-8 text-xs font-mono"
+                />
+              </div>
+              <div>
+                <Label className="text-[11px] text-muted-foreground">Store Longitude</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  value={s.longitude ?? 78.4017}
+                  onChange={(e) => upd("longitude", parseFloat(e.target.value) || 78.4017)}
+                  className="h-8 text-xs font-mono"
+                />
+              </div>
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Logo Letter(s)">
               <Input
@@ -99,30 +162,6 @@ export default function AdminSettings() {
           </div>
         </Card>
 
-        <Card title="Operating hours">
-          {DAYS.map((d) => (
-            <div key={d} className="grid grid-cols-[2.5rem_1fr_auto_1fr] items-center gap-2">
-              <span className="text-sm font-medium">{d}</span>
-              <Input
-                type="time"
-                value={s.hours[d].open}
-                onChange={(e) =>
-                  upd("hours", { ...s.hours, [d]: { ...s.hours[d], open: e.target.value } })
-                }
-                className="w-full min-w-0 px-2"
-              />
-              <span className="text-muted-foreground">–</span>
-              <Input
-                type="time"
-                value={s.hours[d].close}
-                onChange={(e) =>
-                  upd("hours", { ...s.hours, [d]: { ...s.hours[d], close: e.target.value } })
-                }
-                className="w-full min-w-0 px-2"
-              />
-            </div>
-          ))}
-        </Card>
 
         <Card title="Delivery & ordering">
           <Toggle
@@ -232,47 +271,6 @@ export default function AdminSettings() {
           </div>
         </Card>
 
-        <Card title="Live Kitchen & Store Status">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-border/50">
-              <div>
-                <p className="text-sm font-medium">Show Live Status Badge to Customers</p>
-                <p className="text-xs text-muted-foreground">
-                  Displays the real-time operational status (Open / Rush / Closed) pill on Home and Menu pages
-                </p>
-              </div>
-              <input
-                type="checkbox"
-                checked={s.showLiveStatus !== false}
-                onChange={(e) => upd("showLiveStatus", e.target.checked)}
-                className="size-5 rounded accent-primary cursor-pointer"
-              />
-            </div>
-
-            <Field label="Operating Mode Override">
-              <select
-                value={s.storeStatusOverride || "auto"}
-                onChange={(e) => upd("storeStatusOverride", e.target.value as any)}
-                className="mt-1.5 h-9 w-full rounded-md border border-border bg-card px-3 text-sm font-medium"
-              >
-                <option value="auto">🟢 Automatic (8:00 AM – 11:00 PM + Rush Hours)</option>
-                <option value="open">🟢 Force Open (Accepting Orders)</option>
-                <option value="busy">🟡 Force Rush Hour (Kitchen Busy · High Prep Time)</option>
-                <option value="closed">🔴 Force Kitchen Closed (Maintenance / Holiday)</option>
-              </select>
-            </Field>
-            <Field label="Custom Store Banner Notice (Optional)">
-              <Input
-                placeholder="e.g. Closed today for Diwali / Private Event"
-                value={s.storeNotice || ""}
-                onChange={(e) => upd("storeNotice", e.target.value)}
-              />
-            </Field>
-            <p className="text-xs text-muted-foreground">
-              When enabled, customers see instant live updates regarding prep times, rush hours, and kitchen closures.
-            </p>
-          </div>
-        </Card>
 
         <Card title="Deal of the Day & Flash Banner (CMS)">
           <div className="space-y-3">
@@ -527,6 +525,19 @@ export default function AdminSettings() {
           {loading ? "Loading…" : "Save changes"}
         </Button>
       </div>
+
+      <LocationPickerModal
+        isOpen={showMapPicker}
+        onClose={() => setShowMapPicker(false)}
+        initialCoords={{ latitude: s.latitude ?? 17.4399, longitude: s.longitude ?? 78.4017 }}
+        onSelectLocation={(loc) => {
+          upd("latitude", loc.latitude);
+          upd("longitude", loc.longitude);
+          if (loc.formattedAddress) upd("address", loc.formattedAddress);
+          if (loc.city || loc.landmark) upd("locationName", loc.city || loc.landmark);
+          toast.success("Store location updated from map! Click 'Save changes' to save.");
+        }}
+      />
     </AdminLayout>
   );
 }

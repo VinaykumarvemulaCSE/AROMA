@@ -39,6 +39,8 @@ export const addressSchema = z.object({
   phone: normalizedPhone,
   type: z.enum(["Home", "Work", "Other"]).catch("Other"),
   notes: z.string().max(500).optional(),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
 });
 
 export const orderSchema = z.object({

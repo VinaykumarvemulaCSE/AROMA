@@ -14,6 +14,10 @@ import {
   X,
   Layers,
   Trash2,
+  Navigation,
+  Bike,
+  ChefHat,
+  Package,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Input } from "@/components/ui/input";
@@ -22,9 +26,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { inr } from "@/lib/format";
 import { useSettings } from "@/lib/store/settings";
 import { useOrders, type Order, type OrderStatus } from "@/lib/store/orders";
+import { useRiders } from "@/lib/store/rider";
 import { toast } from "sonner";
 import { formatWhatsAppNumber } from "@/lib/whatsapp";
 import { printOrderInvoice, printOrdersListPDF } from "@/lib/print-invoice";
+import { buildGoogleMapsNavUrl } from "@/lib/location";
 import {
   getAdminSoundEnabled,
   setAdminSoundEnabled,
@@ -57,6 +63,10 @@ export default function AdminOrders() {
   const deleteOrder = useOrders((s) => s.deleteOrder);
   const settings = useSettings((s) => s.settings);
   const fetchSettings = useSettings((s) => s.fetchSettings);
+  const riders = useRiders((s) => s.riders);
+  const autoDispatchOrder = useRiders((s) => s.autoDispatchOrder);
+  const setRiderAvailability = useRiders((s) => s.setRiderAvailability);
+  const assignRiderToOrder = useOrders((s) => s.assignRiderToOrder);
 
   const [filter, setFilter] = useState<"All" | OrderStatus>("All");
   const [q, setQ] = useState("");
@@ -164,7 +174,7 @@ export default function AdminOrders() {
 
     const msg = [
       `✅ *Order #${o.id} Confirmed!*`,
-      `Hi ${o.contact.name}, your order from Aroma Cafe has been accepted.`,
+      `Hi ${o.contact.name}, your order from Aroma Cafe has been confirmed.`,
       ``,
       `🛍️ *Items*`,
       itemsText,
@@ -172,16 +182,30 @@ export default function AdminOrders() {
       `💰 *Total: ${inr(o.total)}*`,
       ``,
       `📍 Delivering to: ${o.addr.line1}, ${o.addr.city}`,
-      `⏱️ Estimated time: 30–45 minutes`,
+      `⏱️ Estimated prep & delivery time: 30–40 minutes`,
       ``,
-      `We'll notify you when your order is ready. Thank you! 🙏`,
+      `We will notify you when your order is being prepared and when a delivery rider picks it up. Thank you! 🙏`,
     ].join("\n");
 
     const phone = formatWhatsAppNumber(o.contact.phone);
     if (phone) {
       window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
     }
-    toast.success(`Order #${o.id} accepted & WhatsApp opened.`);
+    toast.success(`Order #${o.id} confirmed!`);
+  };
+
+  // Start preparing: move from Confirmed to Preparing
+  const startPreparing = (o: Order) => {
+    updateStatus(o.id, "Preparing");
+    if (view?.id === o.id) setView({ ...o, status: "Preparing" });
+    toast.success(`Order #${o.id} is now being prepared!`);
+  };
+
+  // Mark as Ready: move from Preparing to Ready
+  const markAsReady = (o: Order) => {
+    updateStatus(o.id, "Ready");
+    if (view?.id === o.id) setView({ ...o, status: "Ready" });
+    toast.success(`Order #${o.id} is ready for pickup!`);
   };
 
   return (
@@ -251,9 +275,23 @@ export default function AdminOrders() {
           </select>
         </div>
 
-        <Button variant="outline" size="sm" onClick={handlePrintOrdersPDF}>
-          <Printer className="size-4 mr-1.5" /> Print / Save Orders PDF
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={selectedIds.length > 0 ? "default" : "outline"}
+            size="sm"
+            onClick={toggleSelectAll}
+            className="text-xs font-semibold"
+          >
+            <CheckSquare className="size-4 mr-1.5" />
+            {selectedIds.length === list.length && list.length > 0
+              ? "Deselect All"
+              : `Select All (${list.length})`}
+          </Button>
+
+          <Button variant="outline" size="sm" onClick={handlePrintOrdersPDF}>
+            <Printer className="size-4 mr-1.5" /> Print / Save Orders PDF
+          </Button>
+        </div>
       </div>
 
       {/* Floating Bulk Operations Toolbar */}
@@ -388,11 +426,22 @@ export default function AdminOrders() {
                   <td className="px-4 py-3">{o.items.length}</td>
                   <td className="px-4 py-3 font-semibold">{inr(o.total)}</td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColor[o.status as OrderStatus] ?? "bg-secondary"}`}
-                    >
-                      {o.status}
-                    </span>
+                    <div className="space-y-1">
+                      <span
+                        className={`text-xs px-2.5 py-1 rounded-full font-medium inline-block ${statusColor[o.status as OrderStatus] ?? "bg-secondary"}`}
+                      >
+                        {o.status}
+                      </span>
+                      {o.assignedRider ? (
+                        <div className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                          <Bike className="size-3" /> {o.assignedRider.name}
+                        </div>
+                      ) : (
+                        <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                          Unassigned
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
@@ -405,6 +454,96 @@ export default function AdminOrders() {
                           <CheckCircle2 className="size-3.5" /> Accept
                         </Button>
                       )}
+
+                      {o.status === "Confirmed" && (
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs gap-1 bg-purple-600 hover:bg-purple-700 text-white"
+                          onClick={() => startPreparing(o)}
+                        >
+                          <ChefHat className="size-3.5" /> Start Preparing
+                        </Button>
+                      )}
+
+                      {o.status === "Preparing" && (
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs gap-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                          onClick={() => markAsReady(o)}
+                        >
+                          <Package className="size-3.5" /> Mark Ready
+                        </Button>
+                      )}
+
+                      {!o.assignedRider && o.status === "Ready" && (
+                        <div className="flex items-center gap-1">
+                          <select
+                            defaultValue=""
+                            onChange={(e) => {
+                              const selectedRiderId = e.target.value;
+                              if (!selectedRiderId) return;
+                              const targetRider = riders.find((r) => r.id === selectedRiderId);
+                              if (targetRider) {
+                                // Update rider availability before assigning
+                                const { setRiderAvailability } = useRiders.getState();
+                                setRiderAvailability(targetRider.id, "ON_DELIVERY");
+
+                                // Then increment order counts
+                                const { riders: currentRiders } = useRiders.getState();
+                                const updatedRiders = currentRiders.map((r) =>
+                                  r.id === targetRider.id
+                                    ? {
+                                        ...r,
+                                        activeOrdersCount: r.activeOrdersCount + 1,
+                                        pendingDeliveries: r.pendingDeliveries + 1,
+                                      }
+                                    : r
+                                );
+                                useRiders.setState({ riders: updatedRiders });
+
+                                void assignRiderToOrder(
+                                  o.id,
+                                  {
+                                    id: targetRider.id,
+                                    name: targetRider.name,
+                                    phone: targetRider.phone,
+                                    vehicleType: targetRider.vehicleType,
+                                    status: "idle",
+                                    deliveryState: "ASSIGNED",
+                                    currentLat: targetRider.currentLat,
+                                    currentLng: targetRider.currentLng,
+                                    updatedAt: Date.now(),
+                                  },
+                                  "Ready"
+                                );
+                                toast.success(`Assigned ${targetRider.name} to Order #${o.id}!`);
+                              }
+                            }}
+                            className="h-7 rounded-md border border-amber-300 bg-amber-50 text-amber-900 text-xs px-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500 font-medium"
+                          >
+                            <option value="" disabled>Assign Rider...</option>
+                            {riders
+                              .filter((r) => r.isOnline && (r.availability === "AVAILABLE" || !r.availability))
+                              .map((r) => (
+                                <option key={r.id} value={r.id}>
+                                  🚴 {r.name} ({r.vehicleType})
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                        onClick={() => {
+                          const url = buildGoogleMapsNavUrl(o.addr);
+                          window.open(url, "_blank");
+                        }}
+                        title="Start Navigation in Google Maps"
+                      >
+                        <Navigation className="size-3.5" />
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
@@ -532,7 +671,7 @@ export default function AdminOrders() {
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-2 border-t border-border">
+              <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-border">
                 <Button
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                   onClick={() => {
@@ -546,6 +685,15 @@ export default function AdminOrders() {
                   }}
                 >
                   <MessageCircle className="size-4 mr-2" /> Message Customer
+                </Button>
+                <Button
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => {
+                    const url = buildGoogleMapsNavUrl(view.addr);
+                    window.open(url, "_blank");
+                  }}
+                >
+                  <Navigation className="size-4 mr-2" /> Start Navigation
                 </Button>
               </div>
             </div>

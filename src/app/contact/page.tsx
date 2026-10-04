@@ -13,6 +13,17 @@ import { sendContactEmail } from "@/lib/api/contact-email";
 import { toast } from "sonner";
 import { formatWhatsAppNumber } from "@/lib/whatsapp";
 
+import dynamic from "next/dynamic";
+
+const ContactMapCanvas = dynamic(() => import("@/components/contact/ContactMapCanvas"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[320px] rounded-2xl bg-muted animate-pulse flex items-center justify-center text-xs text-muted-foreground">
+      Loading Store Location Map...
+    </div>
+  ),
+});
+
 export default function Contact() {
   const settings = useSettings((s) => s.settings);
   const fetchSettings = useSettings((s) => s.fetchSettings);
@@ -57,21 +68,14 @@ export default function Contact() {
     }
   };
 
-  // Compute embed URL for the map, always using address if available to avoid X-Frame-Options issues.
-  const mapSrc = useMemo(() => {
-    if (settings?.address) {
-      const query = encodeURIComponent(settings.address);
-      return `https://maps.google.com/maps?q=${query}&z=15&ie=UTF8&iwloc=&output=embed`;
-    }
-    // Fallback to a generic location
-    return "https://maps.google.com/maps?q=Nalgonda&z=15&ie=UTF8&iwloc=&output=embed";
-  }, [settings]);
+  const storeLat = settings?.latitude ?? 17.4399;
+  const storeLng = settings?.longitude ?? 78.4017;
+  const storeName = settings?.name || "Aroma Cafe HQ";
+  const storeAddress = settings?.address || "Hyderabad, Telangana";
 
   const mapsLink = settings?.mapsUrl
     ? settings.mapsUrl
-    : settings?.address
-      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address)}`
-      : "https://www.google.com/maps";
+    : `https://www.google.com/maps/search/?api=1&query=${storeLat},${storeLng}`;
 
   return (
     <SiteLayout>
@@ -101,11 +105,16 @@ export default function Contact() {
             <Card
               icon={<MapPin className="size-5" />}
               label="Visit"
-              value={settings?.address || ""}
+              value={storeAddress}
               href={mapsLink}
             />
-            <div className="aspect-[4/3] rounded-2xl overflow-hidden border border-border">
-              <iframe title="Map" className="w-full h-full" src={mapSrc} />
+            <div className="relative w-full h-[320px] rounded-2xl overflow-hidden shadow-md">
+              <ContactMapCanvas
+                latitude={storeLat}
+                longitude={storeLng}
+                storeName={storeName}
+                address={storeAddress}
+              />
             </div>
           </div>
           <form

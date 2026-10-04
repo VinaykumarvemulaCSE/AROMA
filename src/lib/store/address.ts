@@ -25,7 +25,10 @@ export type SavedAddress = {
   city: string;
   pin: string;
   phone: string;
+  latitude?: number;
+  longitude?: number;
   isDefault: boolean;
+  defaultInstructions?: string;
 };
 
 type AddressState = {

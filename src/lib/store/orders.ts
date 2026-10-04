@@ -37,6 +37,21 @@ export type OrderStatus =
   | "Delivered"
   | "Cancelled";
 
+// Valid status transitions
+const VALID_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  Pending: ["Confirmed", "Preparing", "Cancelled"],
+  Confirmed: ["Preparing", "Cancelled"],
+  Preparing: ["Ready", "Cancelled"],
+  Ready: ["Out for Delivery", "Cancelled"],
+  "Out for Delivery": ["Delivered", "Cancelled"],
+  Delivered: [], // Terminal state
+  Cancelled: [], // Terminal state
+};
+
+function isValidStatusTransition(from: OrderStatus, to: OrderStatus): boolean {
+  return VALID_STATUS_TRANSITIONS[from]?.includes(to) ?? false;
+}
+
 export type OrderLine = {
   id: string;
   name: string;
@@ -54,6 +69,8 @@ export type Address = {
   phone: string;
   type: string;
   notes?: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 export type Contact = {
@@ -63,6 +80,18 @@ export type Contact = {
   method: string;
   note?: string;
   cutlery: boolean;
+};
+
+export type AssignedRiderInfo = {
+  id: string;
+  name: string;
+  phone: string;
+  vehicleType?: string;
+  status: string;
+  deliveryState?: string;
+  currentLat?: number;
+  currentLng?: number;
+  updatedAt?: number;
 };
 
 export type Order = {
@@ -80,6 +109,7 @@ export type Order = {
   createdAt: number;
   userId?: string;
   isDeleted?: boolean;
+  assignedRider?: AssignedRiderInfo;
 };
 
 type OrdersState = {
@@ -90,6 +120,11 @@ type OrdersState = {
     id: string,
     status: OrderStatus,
   ) => Promise<{ success: boolean; error?: string }>;
+  assignRiderToOrder: (
+    orderId: string,
+    riderInfo: AssignedRiderInfo,
+    newOrderStatus?: OrderStatus
+  ) => Promise<void>;
   deleteOrder: (id: string) => Promise<void>;
   listenToOrders: (userId?: string, role?: "customer" | "admin") => () => void;
   listenToOrder: (orderId: string, onOrder: (order: Order | null) => void) => () => void;
@@ -110,6 +145,12 @@ export const useOrders = create<OrdersState>()((set) => ({
 
     const order = orderSnap.data() as Order;
     const oldStatus = order.status;
+
+    // Validate status transition
+    if (!isValidStatusTransition(oldStatus, status)) {
+      console.error(`Invalid status transition: ${oldStatus} → ${status}`);
+      throw new Error(`Cannot change order status from ${oldStatus} to ${status}`);
+    }
 
     // Update status in Firestore
     await updateDoc(orderRef, { status });
@@ -168,6 +209,34 @@ export const useOrders = create<OrdersState>()((set) => ({
     }
   },
 
+  assignRiderToOrder: async (id, riderInfo, newOrderStatus) => {
+    try {
+      const orderRef = doc(db, "orders", id);
+      const updateData: Record<string, any> = {
+        assignedRider: riderInfo,
+      };
+      if (newOrderStatus) {
+        updateData.status = newOrderStatus;
+      }
+
+      await updateDoc(orderRef, updateData);
+
+      set((state) => ({
+        orders: state.orders.map((o) =>
+          o.id === id
+            ? {
+                ...o,
+                assignedRider: riderInfo,
+                ...(newOrderStatus ? { status: newOrderStatus } : {}),
+              }
+            : o
+        ),
+      }));
+    } catch (error) {
+      console.error("Failed to assign rider to order in Firestore:", error);
+    }
+  },
+
   deleteOrder: async (id: string) => {
     // 1. Optimistically remove from state immediately
     set((state) => ({ orders: state.orders.filter((o) => o.id !== id) }));
@@ -188,18 +257,13 @@ export const useOrders = create<OrdersState>()((set) => ({
   listenToOrders: (userId, role) => {
     let q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
 
-    // If customer, only listen to their own orders
+    // If customer with userId, only listen to their own orders
     if (role === "customer" && userId) {
       q = query(
         collection(db, "orders"),
         where("userId", "==", userId),
         orderBy("createdAt", "desc"),
       );
-    } else if (role !== "admin") {
-      // If not logged in and not admin, we shouldn't listen to anything globally
-      // (Unless we want guest tracking, which we handle separately by direct doc fetch)
-      set({ orders: [] });
-      return () => {};
     }
 
     const unsubscribe = onSnapshot(

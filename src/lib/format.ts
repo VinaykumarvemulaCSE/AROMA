@@ -8,17 +8,17 @@ export const inr = (n: number) =>
 // Default cafe info - will be overridden by settings from Firestore
 export const cafeInfo = {
   name: "Aroma Cafe & Restaurant",
-  tagline: "Brewed with love in Nalgonda",
+  tagline: "Brewed with love & passion",
   phone: "+91 80195 51015",
   whatsapp: "918019551015",
   email: "hello@aromacafe.in",
-  address: "Clock Tower Road, Nalgonda, Telangana 508001",
+  address: "Main Road, Jubilee Hills, Hyderabad, Telangana 500081",
   hours: "Mon–Sun · 8:00 AM – 11:00 PM",
   rating: 4.7,
   reviewCount: 1284,
   instagram: "https://instagram.com",
   facebook: "https://facebook.com",
-  mapsUrl: "https://maps.google.com/?q=Nalgonda",
+  mapsUrl: "https://maps.google.com/?q=Hyderabad",
 };
 
 // Function to get dynamic cafe info from settings
@@ -38,7 +38,7 @@ export const getCafeInfo = (
     reviewCount?: number;
   } | null,
 ) => {
-  if (!settings) return { ...cafeInfo, logoLetters: "A", locationName: "Nalgonda" };
+  if (!settings) return { ...cafeInfo, logoLetters: "A", locationName: "Hyderabad" };
 
   return {
     ...cafeInfo,
@@ -53,6 +53,6 @@ export const getCafeInfo = (
     rating: settings.rating || cafeInfo.rating,
     reviewCount: settings.reviewCount || cafeInfo.reviewCount,
     logoLetters: settings.logoLetters || "A",
-    locationName: settings.locationName || "Nalgonda",
+    locationName: settings.locationName || "Hyderabad",
   };
 };

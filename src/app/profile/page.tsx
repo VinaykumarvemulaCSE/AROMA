@@ -20,12 +20,17 @@ import {
   Loader2,
   Download,
   RotateCcw,
+  Navigation,
+  Map as MapIcon,
+  MessageSquare,
+  Check,
 } from "lucide-react";
 import { useCart } from "@/lib/store/cart";
 import { signOutUser } from "@/lib/auth/session";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { extract10DigitPhone } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -38,6 +43,8 @@ import { useMenu } from "@/lib/store/menu";
 import { useTables } from "@/lib/store/tables";
 import { useOrders } from "@/lib/store/orders";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { LocationPickerModal } from "@/components/LocationPickerModal";
+import { getUserCoordinates, reverseGeocode } from "@/lib/location";
 import { inr } from "@/lib/format";
 import { downloadBill } from "@/lib/bill";
 import { MenuCard } from "@/components/menu/MenuCard";
@@ -49,10 +56,11 @@ const emptyAddr: Omit<SavedAddress, "id"> = {
   line1: "",
   line2: "",
   landmark: "",
-  city: "Nalgonda",
+  city: "Hyderabad",
   pin: "",
   phone: "",
   isDefault: false,
+  defaultInstructions: "",
 };
 
 export default function Profile() {
@@ -82,6 +90,9 @@ export default function Profile() {
   const [addrOpen, setAddrOpen] = useState(false);
   const [editingAddr, setEditingAddr] = useState<SavedAddress | null>(null);
   const [addrForm, setAddrForm] = useState<Omit<SavedAddress, "id">>(emptyAddr);
+  const [hasSelectedLocation, setHasSelectedLocation] = useState(false);
+  const [isLocatingGps, setIsLocatingGps] = useState(false);
+  const [isProfileMapOpen, setIsProfileMapOpen] = useState(false);
 
   // Profile form state
   const [profileName, setProfileName] = useState("");
@@ -202,27 +213,57 @@ export default function Profile() {
   // Address dialog open helpers
   const openAdd = () => {
     setEditingAddr(null);
-    setAddrForm(emptyAddr);
+    setAddrForm({ ...emptyAddr, phone: profilePhone || user?.phone || "" });
+    setHasSelectedLocation(false);
     setAddrOpen(true);
   };
+
   const openEdit = (a: SavedAddress) => {
     setEditingAddr(a);
     setAddrForm({
       label: a.label,
       line1: a.line1,
-      line2: a.line2,
-      landmark: a.landmark,
+      line2: a.line2 ?? "",
+      landmark: a.landmark ?? "",
       city: a.city,
       pin: a.pin,
       phone: a.phone,
       isDefault: a.isDefault,
+      defaultInstructions: a.defaultInstructions ?? "",
+      latitude: a.latitude,
+      longitude: a.longitude,
     });
+    setHasSelectedLocation(true);
     setAddrOpen(true);
   };
+
+  const handleProfileLiveLocation = async () => {
+    setIsLocatingGps(true);
+    try {
+      const coords = await getUserCoordinates();
+      const res = await reverseGeocode(coords.latitude, coords.longitude);
+      setAddrForm((f) => ({
+        ...f,
+        line1: res.line1,
+        city: res.city || "Hyderabad",
+        pin: res.pin || "",
+        landmark: res.landmark || f.landmark,
+        latitude: res.latitude,
+        longitude: res.longitude,
+      }));
+      setHasSelectedLocation(true);
+      toast.success("Location authenticated from your live GPS!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to fetch GPS location.");
+    } finally {
+      setIsLocatingGps(false);
+    }
+  };
+
   const handleSaveAddr = (e: React.FormEvent) => {
     e.preventDefault();
     if (!addrForm.line1 || !addrForm.pin || !addrForm.phone) {
-      toast.error("Please fill in Address line 1, Pincode, and Phone.");
+      toast.error("Please select location and fill in Phone number.");
       return;
     }
     if (editingAddr) {
@@ -385,6 +426,14 @@ export default function Profile() {
                             .join(", ")}
                         </p>
                         <p className="text-xs text-muted-foreground">{a.phone}</p>
+                        {a.defaultInstructions && (
+                          <div className="mt-2 text-xs bg-amber-500/10 text-amber-900 dark:text-amber-300 border border-amber-500/20 px-2.5 py-1.5 rounded-xl flex items-start gap-1.5">
+                            <MessageSquare className="size-3.5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                            <span>
+                              <strong className="font-semibold">Default Instructions:</strong> "{a.defaultInstructions}"
+                            </span>
+                          </div>
+                        )}
                         <div className="flex gap-2 mt-2">
                           {!a.isDefault && (
                             <Button
@@ -628,121 +677,201 @@ export default function Profile() {
       <Dialog open={addrOpen} onOpenChange={setAddrOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingAddr ? "Edit address" : "Add new address"}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 font-display text-lg">
+              <MapPin className="size-5 text-primary" />
+              {editingAddr ? "Edit address" : "Add new address"}
+            </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSaveAddr} className="space-y-4 mt-2">
-            <div>
-              <Label>Label</Label>
-              <RadioGroup
-                value={addrForm.label}
-                onValueChange={(v) => setAddrForm({ ...addrForm, label: v })}
-                className="flex gap-4 mt-1.5"
-              >
-                {["Home", "Work", "Other"].map((t) => (
-                  <label key={t} className="flex items-center gap-2 text-sm cursor-pointer">
-                    <RadioGroupItem value={t} /> {t}
-                  </label>
-                ))}
-              </RadioGroup>
+
+          {!hasSelectedLocation ? (
+            <div className="space-y-4 py-3">
+              <div className="p-3 bg-secondary/50 rounded-xl border border-border text-xs text-muted-foreground">
+                📍 <strong>Step 1: Authenticate Location</strong>
+                <p className="mt-0.5">
+                  Choose your location using Live GPS or by picking on the Map.
+                  Address line 2 and default instructions will be asked in Step 2.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={handleProfileLiveLocation}
+                  disabled={isLocatingGps}
+                  className="flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 hover:border-primary transition-all text-center group active:scale-[0.98]"
+                >
+                  {isLocatingGps ? (
+                    <Loader2 className="size-7 text-primary animate-spin mb-2" />
+                  ) : (
+                    <Navigation className="size-7 text-primary group-hover:scale-110 transition-transform mb-2" />
+                  )}
+                  <span className="font-semibold text-sm text-foreground">
+                    {isLocatingGps ? "Detecting GPS..." : "Use Live Location"}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground mt-1">
+                    Auto-detect via browser GPS
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsProfileMapOpen(true)}
+                  className="flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 hover:border-primary transition-all text-center group active:scale-[0.98]"
+                >
+                  <MapIcon className="size-7 text-primary group-hover:scale-110 transition-transform mb-2" />
+                  <span className="font-semibold text-sm text-foreground">Choose on Map</span>
+                  <span className="text-[11px] text-muted-foreground mt-1">
+                    Pin exact location visually
+                  </span>
+                </button>
+              </div>
+
+              <div className="text-center pt-2">
+                <Button variant="ghost" size="sm" onClick={() => setAddrOpen(false)}>
+                  Cancel
+                </Button>
+              </div>
             </div>
-            <div>
-              <Label>
-                Address line 1 <span className="text-destructive">*</span>
-              </Label>
-              <AddressAutocomplete
-                value={addrForm.line1}
-                onChange={(raw, parsed) => {
-                  if (parsed) {
-                    setAddrForm((f) => ({
-                      ...f,
-                      line1: parsed.line1 || raw,
-                      city: parsed.city || f.city,
-                      pin: parsed.pin || f.pin,
-                    }));
-                  } else {
-                    setAddrForm((f) => ({ ...f, line1: raw }));
-                  }
-                }}
-                placeholder="House / flat, street…"
-                className="mt-1.5"
-                required
-              />
-            </div>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <div>
-                <Label>Address line 2</Label>
-                <Input
-                  value={addrForm.line2}
-                  onChange={(e) => setAddrForm({ ...addrForm, line2: e.target.value })}
-                  className="mt-1.5"
-                  placeholder="Area, colony"
-                />
+          ) : (
+            <form onSubmit={handleSaveAddr} className="space-y-4 mt-1">
+              {/* Authenticated Location Pill */}
+              <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-xl flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="text-[11px] font-bold text-green-700 dark:text-green-400 uppercase tracking-wider flex items-center gap-1">
+                    <Check className="size-3" /> GPS Location Authenticated
+                  </span>
+                  <p className="text-xs font-semibold text-foreground truncate mt-0.5">
+                    {addrForm.line1}, {addrForm.city} {addrForm.pin}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setHasSelectedLocation(false)}
+                  className="text-xs h-7 border-green-600/30 text-green-700 dark:text-green-400 shrink-0"
+                >
+                  Re-locate
+                </Button>
               </div>
+
               <div>
-                <Label>Landmark</Label>
-                <Input
-                  value={addrForm.landmark}
-                  onChange={(e) => setAddrForm({ ...addrForm, landmark: e.target.value })}
-                  className="mt-1.5"
-                  placeholder="Near…"
-                />
+                <Label>Label</Label>
+                <RadioGroup
+                  value={addrForm.label}
+                  onValueChange={(v) => setAddrForm({ ...addrForm, label: v })}
+                  className="flex gap-4 mt-1.5"
+                >
+                  {["Home", "Work", "Other"].map((t) => (
+                    <label key={t} className="flex items-center gap-2 text-sm cursor-pointer">
+                      <RadioGroupItem value={t} /> {t}
+                    </label>
+                  ))}
+                </RadioGroup>
               </div>
+
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <Label>Address line 2 (House / Flat / Floor / Building)</Label>
+                  <Input
+                    value={addrForm.line2}
+                    onChange={(e) => setAddrForm({ ...addrForm, line2: e.target.value })}
+                    className="mt-1.5"
+                    placeholder="e.g. Flat 402, 4th Floor, Skyline Towers"
+                  />
+                </div>
+
+                <div>
+                  <Label>Landmark (Optional)</Label>
+                  <Input
+                    value={addrForm.landmark}
+                    onChange={(e) => setAddrForm({ ...addrForm, landmark: e.target.value })}
+                    className="mt-1.5"
+                    placeholder="Near water tank…"
+                  />
+                </div>
+
+                <div>
+                  <Label>
+                    Phone <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    value={addrForm.phone}
+                    onChange={(e) =>
+                      setAddrForm({
+                        ...addrForm,
+                        phone: e.target.value.replace(/\D/g, "").slice(0, 10),
+                      })
+                    }
+                    className="mt-1.5"
+                    maxLength={10}
+                    placeholder="10-digit mobile number"
+                    required
+                  />
+                </div>
+              </div>
+
               <div>
-                <Label>City</Label>
-                <Input
-                  value={addrForm.city}
-                  onChange={(e) => setAddrForm({ ...addrForm, city: e.target.value })}
-                  className="mt-1.5"
-                />
-              </div>
-              <div>
-                <Label>
-                  Pincode <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  value={addrForm.pin}
-                  onChange={(e) => setAddrForm({ ...addrForm, pin: e.target.value })}
-                  className="mt-1.5"
-                  required
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <Label>
-                  Phone <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  value={addrForm.phone}
+                <Label>Default delivery instructions for rider (Profile Default)</Label>
+                <Textarea
+                  rows={2}
+                  value={addrForm.defaultInstructions}
                   onChange={(e) =>
-                    setAddrForm({
-                      ...addrForm,
-                      phone: e.target.value.replace(/\D/g, "").slice(0, 10),
-                    })
+                    setAddrForm({ ...addrForm, defaultInstructions: e.target.value })
                   }
-                  className="mt-1.5"
-                  maxLength={10}
-                  placeholder="10-digit mobile number"
-                  required
+                  className="mt-1.5 text-sm"
+                  placeholder="e.g. Leave package at security gate, ring bell twice, call before arriving"
                 />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  These default instructions will automatically be suggested during checkout.
+                </p>
               </div>
-            </div>
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
-                checked={addrForm.isDefault}
-                onChange={(e) => setAddrForm({ ...addrForm, isDefault: e.target.checked })}
-                className="rounded border-border"
-              />
-              Set as default address
-            </label>
-            <div className="flex justify-end gap-2 pt-1">
-              <Button type="button" variant="outline" onClick={() => setAddrOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">{editingAddr ? "Save changes" : "Add address"}</Button>
-            </div>
-          </form>
+
+              <label className="flex items-center gap-2 text-sm cursor-pointer pt-1">
+                <input
+                  type="checkbox"
+                  checked={addrForm.isDefault}
+                  onChange={(e) => setAddrForm({ ...addrForm, isDefault: e.target.checked })}
+                  className="rounded border-border"
+                />
+                Set as default address
+              </label>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                <Button type="button" variant="outline" onClick={() => setAddrOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">{editingAddr ? "Save changes" : "Save Address"}</Button>
+              </div>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
+
+      <LocationPickerModal
+        isOpen={isProfileMapOpen}
+        onClose={() => setIsProfileMapOpen(false)}
+        initialCoords={
+          addrForm.latitude && addrForm.longitude
+            ? { latitude: addrForm.latitude, longitude: addrForm.longitude }
+            : undefined
+        }
+        onSelectLocation={(loc) => {
+          setAddrForm((f) => ({
+            ...f,
+            line1: loc.line1,
+            line2: loc.line2 || f.line2,
+            city: loc.city || "Hyderabad",
+            pin: loc.pin || f.pin,
+            landmark: loc.landmark || f.landmark,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            label: loc.label || f.label,
+          }));
+          setHasSelectedLocation(true);
+          toast.success("Location selected on map!");
+        }}
+      />
     </SiteLayout>
   );
 }

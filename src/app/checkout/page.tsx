@@ -17,6 +17,9 @@ import {
   HelpCircle,
   ChevronDown,
   ShoppingBag,
+  Navigation,
+  Loader2,
+  Map as MapIcon,
 } from "lucide-react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { Button } from "@/components/ui/button";
@@ -34,6 +37,8 @@ import { auth } from "@/lib/firebase";
 import { createOrder } from "@/lib/api/orders";
 import { validateCouponCode } from "@/lib/api/coupons";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { LocationPickerModal } from "@/components/LocationPickerModal";
+import { getUserCoordinates, reverseGeocode, calculateDynamicDeliveryFee } from "@/lib/location";
 import { inr } from "@/lib/format";
 import { buildOrderWhatsAppUrl, openWhatsAppInTab, WA_PENDING_KEY } from "@/lib/whatsapp";
 import { toast } from "sonner";
@@ -50,6 +55,8 @@ type AddrForm = {
   phone: string;
   type: string;
   notes: string;
+  latitude?: number;
+  longitude?: number;
 };
 type ContactForm = {
   name: string;
@@ -68,18 +75,6 @@ export default function CheckoutPage() {
   const { addresses } = useAddresses();
   const settings = useSettings((s) => s.settings);
 
-  const subtotal = lines.reduce((s, l) => s + l.qty * l.price, 0);
-  const gstRate = settings?.gst ?? 5;
-  const freeDeliveryThreshold = settings?.freeDeliveryAbove ?? 499;
-  const deliveryFee = settings?.deliveryFee ?? 40;
-  const tax = Math.round((subtotal * gstRate) / 100);
-  const delivery = subtotal >= freeDeliveryThreshold ? 0 : deliveryFee;
-
-  const [step, setStep] = useState(0);
-  const [showGuestDialog, setShowGuestDialog] = useState(false);
-  const [guestProceed, setGuestProceed] = useState(false);
-  const [showManualAddressForm, setShowManualAddressForm] = useState(false);
-
   // Coupons live listener
   const { coupons, listenToCoupons } = useCoupons();
   useEffect(() => {
@@ -88,16 +83,76 @@ export default function CheckoutPage() {
 
   // Auto-fill address from saved default address or user profile
   const defaultAddress = addresses.find((a) => a.isDefault) || addresses[0];
+  const [hasLocationSelected, setHasLocationSelected] = useState<boolean>(
+    !!(defaultAddress?.latitude && defaultAddress?.longitude),
+  );
   const [addr, setAddr] = useState<AddrForm>({
     line1: defaultAddress?.line1 ?? "",
     line2: defaultAddress?.line2 ?? "",
     landmark: defaultAddress?.landmark ?? "",
-    city: defaultAddress?.city ?? "Nalgonda",
+    city: defaultAddress?.city ?? "Hyderabad",
     pin: defaultAddress?.pin ?? "",
     phone: defaultAddress?.phone ?? user?.phone ?? "",
     type: defaultAddress?.label ?? "Home",
-    notes: "",
+    notes: defaultAddress?.defaultInstructions ?? "",
+    latitude: defaultAddress?.latitude,
+    longitude: defaultAddress?.longitude,
   });
+
+  const subtotal = lines.reduce((s, l) => s + l.qty * l.price, 0);
+  const gstRate = settings?.gst ?? 5;
+  const freeDeliveryThreshold = settings?.freeDeliveryAbove ?? 499;
+
+  // Dynamic distance-based delivery fee calculation
+  const deliveryCalc = calculateDynamicDeliveryFee({
+    customerLat: addr.latitude,
+    customerLng: addr.longitude,
+    storeLat: settings?.latitude ?? 17.4399,
+    storeLng: settings?.longitude ?? 78.4017,
+    subtotal,
+    baseFee: settings?.deliveryFee ?? 30,
+    baseRadiusKm: 3,
+    perKmRate: 10,
+    maxDeliveryRadiusKm: 10,
+    freeDeliveryThreshold,
+  });
+
+  const delivery = deliveryCalc.fee;
+  const tax = Math.round((subtotal * gstRate) / 100);
+
+  const [step, setStep] = useState(0);
+  const [showGuestDialog, setShowGuestDialog] = useState(false);
+  const [guestProceed, setGuestProceed] = useState(false);
+  const [showManualAddressForm, setShowManualAddressForm] = useState(false);
+  const [isLocatingGps, setIsLocatingGps] = useState(false);
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+
+  const handleUseCurrentLocation = async () => {
+    setIsLocatingGps(true);
+    try {
+      const coords = await getUserCoordinates();
+      const res = await reverseGeocode(coords.latitude, coords.longitude);
+      setAddr((prev) => ({
+        line1: res.line1,
+        line2: "",
+        landmark: res.landmark ?? "",
+        city: res.city || "Hyderabad",
+        pin: res.pin || "",
+        phone: prev.phone || user?.phone || "",
+        type: prev.type || "Home",
+        notes: prev.notes || "",
+        latitude: res.latitude,
+        longitude: res.longitude,
+      }));
+      setHasLocationSelected(true);
+      setShowManualAddressForm(true);
+      toast.success("Address detected from your current GPS location!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to fetch GPS location.");
+    } finally {
+      setIsLocatingGps(false);
+    }
+  };
 
   // Toggle manual form when saved addresses load
   useEffect(() => {
@@ -142,8 +197,13 @@ export default function CheckoutPage() {
         pin: defaultAddress.pin,
         phone: extract10DigitPhone(defaultAddress.phone || user?.phone || ""),
         type: defaultAddress.label,
-        notes: "",
+        notes: defaultAddress.defaultInstructions ?? "",
+        latitude: defaultAddress.latitude,
+        longitude: defaultAddress.longitude,
       });
+      if (defaultAddress.latitude && defaultAddress.longitude) {
+        setHasLocationSelected(true);
+      }
     }
   }, [addresses, user]);
 
@@ -159,7 +219,7 @@ export default function CheckoutPage() {
 
   // Filter available coupons for suggestions
   const activeSuggestedCoupons = coupons.filter(
-    (c) =>
+    (c: any) =>
       c.status === "Active" && subtotal >= c.minOrder && (c.maxUses === 0 || c.used < c.maxUses),
   );
 
@@ -193,10 +253,13 @@ export default function CheckoutPage() {
       pin: a.pin,
       phone: a.phone,
       type: a.label,
-      notes: "",
+      notes: a.defaultInstructions ?? "",
+      latitude: a.latitude,
+      longitude: a.longitude,
     });
+    setHasLocationSelected(true);
     setShowManualAddressForm(false);
-    toast.success(`Address "${a.label}" loaded.`);
+    toast.success(`Address "${a.label}" loaded with default instructions.`);
   };
 
   // ── Coupon logic ──
@@ -252,6 +315,10 @@ export default function CheckoutPage() {
         toast.error("Please enter a valid 6-digit Pincode.");
         return;
       }
+      if (!deliveryCalc.isDeliverable) {
+        toast.error(deliveryCalc.reason || "Your location is out of our delivery range.");
+        return;
+      }
     }
     if (step === 2) {
       if (!contact.name || !contact.phone) {
@@ -298,6 +365,8 @@ export default function CheckoutPage() {
           phone: finalAddr.phone,
           type: finalAddr.type,
           ...(finalAddr.notes && { notes: finalAddr.notes }),
+          ...(finalAddr.latitude !== undefined && { latitude: finalAddr.latitude }),
+          ...(finalAddr.longitude !== undefined && { longitude: finalAddr.longitude }),
         },
         contact: {
           name: finalContact.name,
@@ -380,28 +449,25 @@ export default function CheckoutPage() {
           {steps.map((s, i) => (
             <li key={s} className="flex items-center gap-1.5 sm:gap-2 flex-1 last:flex-initial">
               <span
-                className={`grid place-items-center size-7 sm:size-8 shrink-0 rounded-full text-xs font-bold transition-all shadow-sm ${
-                  i <= step
-                    ? "bg-primary text-primary-foreground ring-2 ring-primary/20"
-                    : "bg-secondary text-muted-foreground"
-                }`}
+                className={`grid place-items-center size-7 sm:size-8 shrink-0 rounded-full text-xs font-bold transition-all shadow-sm ${i <= step
+                  ? "bg-primary text-primary-foreground ring-2 ring-primary/20"
+                  : "bg-secondary text-muted-foreground"
+                  }`}
               >
                 {i < step ? <Check className="size-4" /> : i + 1}
               </span>
               <span
-                className={`text-xs sm:text-sm whitespace-nowrap ${
-                  i === step
-                    ? "font-bold text-foreground inline"
-                    : "text-muted-foreground hidden sm:inline"
-                }`}
+                className={`text-xs sm:text-sm whitespace-nowrap ${i === step
+                  ? "font-bold text-foreground inline"
+                  : "text-muted-foreground hidden sm:inline"
+                  }`}
               >
                 {s}
               </span>
               {i < steps.length - 1 && (
                 <div
-                  className={`flex-1 h-0.5 mx-1 sm:mx-2 min-w-[8px] transition-colors ${
-                    i < step ? "bg-primary" : "bg-border"
-                  }`}
+                  className={`flex-1 h-0.5 mx-1 sm:mx-2 min-w-[8px] transition-colors ${i < step ? "bg-primary" : "bg-border"
+                    }`}
                 />
               )}
             </li>
@@ -518,7 +584,7 @@ export default function CheckoutPage() {
                             Available Offers
                           </p>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {activeSuggestedCoupons.map((c) => (
+                            {activeSuggestedCoupons.map((c: any) => (
                               <button
                                 key={c.code}
                                 type="button"
@@ -553,170 +619,226 @@ export default function CheckoutPage() {
                 <div>
                   <h2 className="font-display font-semibold text-lg">Delivery address</h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Specify where we should deliver your warm delights.
+                    Select a saved address or authenticate your live position for delivery.
                   </p>
                 </div>
 
                 {/* Saved address picker */}
                 {addresses.length > 0 && (
                   <div className="space-y-3">
-                    <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                      <MapPin className="size-4 text-primary" /> Select saved address
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {addresses.map((a) => {
-                        const isSelected = addr.line1 === a.line1 && addr.pin === a.pin;
-                        const Icon =
-                          a.label === "Home" ? HomeIcon : a.label === "Work" ? WorkIcon : MapPin;
-                        // Map local constants to avoid symbol overlap
-                        return (
-                          <button
-                            key={a.id}
-                            type="button"
-                            onClick={() => applySaved(a.id)}
-                            disabled={isSubmitting}
-                            className={`flex items-start gap-3 p-4 rounded-xl border text-left transition-all duration-200 ${
-                              isSelected
-                                ? "border-primary bg-primary/5 ring-1 ring-primary/30 shadow-sm"
-                                : "border-border hover:border-primary/60 hover:bg-secondary/10"
-                            }`}
-                          >
-                            <div
-                              className={`p-2 rounded-lg shrink-0 ${isSelected ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
-                            >
-                              <Icon className="size-4" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-semibold text-sm text-foreground">
-                                  {a.label}
-                                </span>
-                                {a.isDefault && (
-                                  <span className="text-[9px] font-medium bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full">
-                                    Default
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-xs text-muted-foreground truncate mt-1">
-                                {a.line1}, {a.city}
-                              </p>
-                              <p className="text-[10px] text-muted-foreground/80 mt-0.5">
-                                {a.phone}
-                              </p>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-xs text-muted-foreground">
-                        {showManualAddressForm
-                          ? "Adding custom address"
-                          : "Using selected saved address"}
-                      </span>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                        <MapPin className="size-4 text-primary" /> Select saved address
+                      </p>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="text-xs font-semibold text-primary p-0 h-auto hover:bg-transparent hover:text-primary/80 transition-colors"
-                        onClick={() => setShowManualAddressForm(!showManualAddressForm)}
+                        className="text-xs font-semibold text-primary p-0 h-auto hover:bg-transparent"
+                        onClick={() => {
+                          setShowManualAddressForm(!showManualAddressForm);
+                          if (!showManualAddressForm) {
+                            setHasLocationSelected(false);
+                          }
+                        }}
                       >
-                        {showManualAddressForm ? "Cancel manual entry" : "Enter address manually"}
+                        {showManualAddressForm ? "Use saved address" : "+ Add new location"}
                       </Button>
                     </div>
+
+                    {!showManualAddressForm && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {addresses.map((a) => {
+                          const isSelected = addr.line1 === a.line1 && addr.pin === a.pin;
+                          const Icon =
+                            a.label === "Home" ? HomeIcon : a.label === "Work" ? WorkIcon : MapPin;
+                          return (
+                            <button
+                              key={a.id}
+                              type="button"
+                              onClick={() => applySaved(a.id)}
+                              disabled={isSubmitting}
+                              className={`flex items-start gap-3 p-4 rounded-xl border text-left transition-all duration-200 ${
+                                isSelected
+                                  ? "border-primary bg-primary/5 ring-1 ring-primary/30 shadow-sm"
+                                  : "border-border hover:border-primary/60 hover:bg-secondary/10"
+                              }`}
+                            >
+                              <div
+                                className={`p-2 rounded-lg shrink-0 ${isSelected ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
+                              >
+                                <Icon className="size-4" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-semibold text-sm text-foreground">
+                                    {a.label}
+                                  </span>
+                                  {a.isDefault && (
+                                    <span className="text-[9px] font-medium bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full">
+                                      Default
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground truncate mt-1">
+                                  {a.line1}, {a.city}
+                                </p>
+                                {a.defaultInstructions && (
+                                  <p className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-md mt-1 truncate">
+                                    💬 Profile Default: "{a.defaultInstructions}"
+                                  </p>
+                                )}
+                                <p className="text-[10px] text-muted-foreground/80 mt-0.5">
+                                  {a.phone}
+                                </p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {showManualAddressForm && (
-                  <div className="grid sm:grid-cols-2 gap-4 border border-dashed border-border/80 rounded-2xl p-5 bg-secondary/10 animate-slideDown">
-                    <Field label="Address line 1" required className="sm:col-span-2">
-                      <AddressAutocomplete
-                        value={addr.line1}
-                        onChange={(raw, parsed) => {
-                          if (parsed)
-                            setAddr((f) => ({
-                              ...f,
-                              line1: parsed.line1 || raw,
-                              city: parsed.city || f.city,
-                              pin: parsed.pin || f.pin,
-                            }));
-                          else setAddr((f) => ({ ...f, line1: raw }));
-                        }}
-                        placeholder="House / flat no, street"
-                      />
-                    </Field>
-                    <Field label="Address line 2">
-                      <Input
-                        value={addr.line2}
-                        onChange={(e) => setAddr({ ...addr, line2: e.target.value })}
-                        placeholder="Area, colony"
-                        disabled={isSubmitting}
-                      />
-                    </Field>
-                    <Field label="Landmark">
-                      <Input
-                        value={addr.landmark}
-                        onChange={(e) => setAddr({ ...addr, landmark: e.target.value })}
-                        placeholder="Near…"
-                        disabled={isSubmitting}
-                      />
-                    </Field>
-                    <Field label="City">
-                      <Input
-                        value={addr.city}
-                        onChange={(e) => setAddr({ ...addr, city: e.target.value })}
-                        disabled={isSubmitting}
-                      />
-                    </Field>
-                    <Field label="Pincode" required>
-                      <Input
-                        value={addr.pin}
-                        onChange={(e) => setAddr({ ...addr, pin: e.target.value })}
-                        disabled={isSubmitting}
-                      />
-                    </Field>
-                    <Field label="Phone" required>
-                      <Input
-                        value={addr.phone}
-                        onChange={(e) =>
-                          setAddr({
-                            ...addr,
-                            phone: e.target.value.replace(/\D/g, "").slice(0, 10),
-                          })
-                        }
-                        disabled={isSubmitting}
-                        maxLength={10}
-                        placeholder="10-digit mobile number"
-                      />
-                    </Field>
-                    <div className="sm:col-span-2">
-                      <Label>Address type</Label>
-                      <RadioGroup
-                        value={addr.type}
-                        onValueChange={(v) => setAddr({ ...addr, type: v })}
-                        className="flex gap-4 mt-2"
-                        disabled={isSubmitting}
-                      >
-                        {["Home", "Work", "Other"].map((t) => (
-                          <label key={t} className="flex items-center gap-2 text-sm cursor-pointer">
-                            <RadioGroupItem value={t} /> {t}
-                          </label>
-                        ))}
-                      </RadioGroup>
-                    </div>
+                {/* Custom / New Address Section */}
+                {(showManualAddressForm || addresses.length === 0) && (
+                  <div className="space-y-4 border border-dashed border-border/80 rounded-2xl p-5 bg-secondary/10 animate-slideDown">
+                    {!hasLocationSelected ? (
+                      <div className="space-y-3">
+                        <div className="p-3 bg-card rounded-xl border border-border text-xs text-muted-foreground">
+                          📍 <strong>Step 1: Authenticate Delivery Location</strong>
+                          <p className="mt-0.5">
+                            Select your location using Live GPS or Map. Address line 2 and special instructions will be extended after.
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <button
+                            type="button"
+                            onClick={handleUseCurrentLocation}
+                            disabled={isLocatingGps || isSubmitting}
+                            className="flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed border-primary/40 bg-card hover:bg-primary/5 hover:border-primary transition-all text-center group active:scale-[0.98]"
+                          >
+                            {isLocatingGps ? (
+                              <Loader2 className="size-7 text-primary animate-spin mb-2" />
+                            ) : (
+                              <Navigation className="size-7 text-primary group-hover:scale-110 transition-transform mb-2" />
+                            )}
+                            <span className="font-semibold text-sm text-foreground">
+                              {isLocatingGps ? "Detecting GPS..." : "Use Live Location"}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground mt-1">
+                              Auto-detect browser GPS
+                            </span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setIsMapModalOpen(true)}
+                            disabled={isSubmitting}
+                            className="flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed border-primary/40 bg-card hover:bg-primary/5 hover:border-primary transition-all text-center group active:scale-[0.98]"
+                          >
+                            <MapIcon className="size-7 text-primary group-hover:scale-110 transition-transform mb-2" />
+                            <span className="font-semibold text-sm text-foreground">Choose on Map</span>
+                            <span className="text-[11px] text-muted-foreground mt-1">
+                              Pin location on interactive map
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Authenticated Location Pill */}
+                        <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-xl flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <span className="text-[11px] font-bold text-green-700 dark:text-green-400 uppercase tracking-wider flex items-center gap-1">
+                              <Check className="size-3" /> GPS Location Authenticated
+                            </span>
+                            <p className="text-xs font-semibold text-foreground truncate mt-0.5">
+                              {addr.line1}, {addr.city} {addr.pin}
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setHasLocationSelected(false)}
+                            className="text-xs h-7 border-green-600/30 text-green-700 dark:text-green-400 shrink-0"
+                          >
+                            Re-locate
+                          </Button>
+                        </div>
+
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <Field label="Address line 2 (House / Flat / Floor / Building)">
+                            <Input
+                              value={addr.line2}
+                              onChange={(e) => setAddr({ ...addr, line2: e.target.value })}
+                              placeholder="e.g. Flat 302, 3rd Floor"
+                              disabled={isSubmitting}
+                            />
+                          </Field>
+
+                          <Field label="Landmark (Optional)">
+                            <Input
+                              value={addr.landmark}
+                              onChange={(e) => setAddr({ ...addr, landmark: e.target.value })}
+                              placeholder="Near…"
+                              disabled={isSubmitting}
+                            />
+                          </Field>
+
+                          <Field label="Phone" required>
+                            <Input
+                              value={addr.phone}
+                              onChange={(e) =>
+                                setAddr({
+                                  ...addr,
+                                  phone: e.target.value.replace(/\D/g, "").slice(0, 10),
+                                })
+                              }
+                              disabled={isSubmitting}
+                              maxLength={10}
+                              placeholder="10-digit mobile number"
+                            />
+                          </Field>
+
+                          <div>
+                            <Label className="text-sm">Address type</Label>
+                            <RadioGroup
+                              value={addr.type}
+                              onValueChange={(v) => setAddr({ ...addr, type: v })}
+                              className="flex gap-4 mt-2"
+                              disabled={isSubmitting}
+                            >
+                              {["Home", "Work", "Other"].map((t) => (
+                                <label key={t} className="flex items-center gap-2 text-sm cursor-pointer">
+                                  <RadioGroupItem value={t} /> {t}
+                                </label>
+                              ))}
+                            </RadioGroup>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                <Field label="Delivery instructions" className="pt-2">
-                  <Textarea
-                    rows={3}
-                    value={addr.notes}
-                    onChange={(e) => setAddr({ ...addr, notes: e.target.value })}
-                    placeholder="Gate code, where to leave, etc."
-                    disabled={isSubmitting}
-                  />
-                </Field>
+                {/* Special Delivery Instructions for this order (Always available when location is selected) */}
+                {hasLocationSelected && (
+                  <Field label="Special Delivery Instructions for Rider (Checkout Special)" className="pt-2">
+                    <Textarea
+                      rows={3}
+                      value={addr.notes}
+                      onChange={(e) => setAddr({ ...addr, notes: e.target.value })}
+                      placeholder="e.g. Leave package with guard at Gate 2, call when 2 mins away..."
+                      disabled={isSubmitting}
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      ⚡ <strong>Priority Note:</strong> Special instructions entered here take precedence over profile default instructions for this order.
+                    </p>
+                  </Field>
+                )}
               </div>
             )}
 
@@ -835,13 +957,23 @@ export default function CheckoutPage() {
                     order tracking will begin once the admin accepts.
                   </p>
                 </div>
-                <label className="mt-4 flex items-start gap-2 text-sm">
+                <label className="mt-4 flex items-start gap-2 text-sm cursor-pointer select-none">
                   <Checkbox
                     checked={agree}
                     onCheckedChange={(v) => setAgree(!!v)}
                     disabled={isSubmitting}
                   />{" "}
-                  I agree to the terms and cancellation policy.
+                  <span>
+                    I agree to the{" "}
+                    <Link
+                      href="/terms"
+                      target="_blank"
+                      className="underline font-medium text-primary hover:text-primary/80"
+                    >
+                      Terms & Conditions
+                    </Link>{" "}
+                    and cancellation policy.
+                  </span>
                 </label>
               </div>
             )}
@@ -896,10 +1028,22 @@ export default function CheckoutPage() {
                 <dt className="text-muted-foreground">GST ({gstRate}%)</dt>
                 <dd>{inr(tax)}</dd>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Delivery</dt>
-                <dd>{delivery === 0 ? "FREE" : inr(delivery)}</dd>
+              <div className="flex justify-between items-start">
+                <dt className="text-muted-foreground flex flex-col">
+                  <span>Delivery</span>
+                  {deliveryCalc.roadDistanceKm > 0 && (
+                    <span className="text-[10px] text-primary font-medium mt-0.5">
+                      ({deliveryCalc.roadDistanceKm} km · {deliveryCalc.estimatedEtaMinutes.formatted})
+                    </span>
+                  )}
+                </dt>
+                <dd className="font-medium">{delivery === 0 ? "FREE" : inr(delivery)}</dd>
               </div>
+              {!deliveryCalc.isDeliverable && (
+                <div className="text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-950/40 p-2.5 rounded-lg border border-red-200 mt-1.5">
+                  ⚠️ Out of Delivery Area ({deliveryCalc.distanceKm} km away)
+                </div>
+              )}
               {discount > 0 && (
                 <div className="flex justify-between text-green-600">
                   <dt className="flex items-center gap-1">
@@ -987,6 +1131,33 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
+
+      <LocationPickerModal
+        isOpen={isMapModalOpen}
+        onClose={() => setIsMapModalOpen(false)}
+        initialCoords={
+          addr.latitude && addr.longitude
+            ? { latitude: addr.latitude, longitude: addr.longitude }
+            : undefined
+        }
+        onSelectLocation={(loc) => {
+          setAddr((prev) => ({
+            line1: loc.line1,
+            line2: loc.line2 ?? "",
+            landmark: loc.landmark ?? "",
+            city: loc.city || "Hyderabad",
+            pin: loc.pin || "",
+            phone: prev.phone || user?.phone || "",
+            type: loc.label || prev.type || "Home",
+            notes: prev.notes || "",
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+          }));
+          setHasLocationSelected(true);
+          setShowManualAddressForm(true);
+          toast.success("Address updated from map!");
+        }}
+      />
     </SiteLayout>
   );
 }

@@ -28,8 +28,15 @@ type StaffState = {
   listenToStaff: () => () => void;
 };
 
+const INITIAL_STAFF: StaffMember[] = [
+  { id: "staff-1", name: "Rahul Kumar", role: "Rider / Delivery Partner", email: "rahul.rider@aromacafe.in", phone: "9876543210", active: true },
+  { id: "staff-2", name: "Vikram Singh", role: "Rider / Delivery Partner", email: "vikram.rider@aromacafe.in", phone: "9876543211", active: true },
+  { id: "staff-3", name: "Suresh Patel", role: "Rider / Delivery Partner", email: "suresh.rider@aromacafe.in", phone: "9876543212", active: true },
+  { id: "staff-4", name: "Anil Sharma", role: "Head Chef", email: "anil.chef@aromacafe.in", phone: "9876543213", active: true },
+];
+
 export const useStaff = create<StaffState>()((set) => ({
-  staff: [],
+  staff: INITIAL_STAFF,
 
   addStaff: async (member) => {
     const id = `staff-${Date.now()}`;
@@ -47,7 +54,9 @@ export const useStaff = create<StaffState>()((set) => ({
   listenToStaff: () => {
     const q = query(collection(db, "staff"));
     return onSnapshot(q, (snapshot) => {
-      set({ staff: snapshot.docs.map((doc) => doc.data() as StaffMember) });
+      if (!snapshot.empty) {
+        set({ staff: snapshot.docs.map((doc) => doc.data() as StaffMember) });
+      }
     });
   },
 }));

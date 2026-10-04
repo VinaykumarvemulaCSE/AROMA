@@ -3,6 +3,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   ShoppingBag,
+  MapPin,
   UtensilsCrossed,
   CalendarClock,
   Users,
@@ -16,6 +17,7 @@ import {
   X,
   TableProperties,
   Image as ImageIcon,
+  Route,
 } from "lucide-react";
 import { useAuth } from "@/lib/store/auth";
 import { useOrders } from "@/lib/store/orders";
@@ -27,6 +29,7 @@ import { Switch } from "@/components/ui/switch";
 const nav = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/orders", label: "Orders", icon: ShoppingBag },
+  { to: "/admin/areamap", label: "Delivery Map", icon: MapPin },
   { to: "/admin/menu", label: "Menu", icon: UtensilsCrossed },
   { to: "/admin/reservations", label: "Reservations", icon: CalendarClock },
   { to: "/admin/tables", label: "Table Mgmt", icon: TableProperties },
@@ -135,16 +138,15 @@ export function AdminLayout({ children }: { children?: ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen flex bg-secondary/30">
-      <aside className="hidden lg:flex w-64 flex-col bg-card border-r border-border sticky top-0 h-screen shrink-0">
+    <div className="h-screen w-full flex bg-secondary/30 overflow-hidden">
+      <aside className="hidden lg:flex w-64 flex-col bg-card border-r border-border h-screen shrink-0">
         <Link href="/admin" className="flex items-center gap-2 px-5 h-16 border-b border-border">
           <div className="grid place-items-center size-9 rounded-full bg-primary text-primary-foreground font-display font-bold">
             A
           </div>
           <div>
-            <p className="font-display font-semibold leading-none">Aroma Admin</p>
             <p className="text-[10px] uppercase text-muted-foreground tracking-widest mt-0.5">
-              Nalgonda
+              Admin Portal
             </p>
           </div>
         </Link>
@@ -165,14 +167,14 @@ export function AdminLayout({ children }: { children?: ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex-1 min-w-0 flex flex-col">
-        <header className="lg:hidden bg-card border-b border-border h-14 px-4 flex items-center gap-3 sticky top-0 z-30">
+      <div className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
+        <header className="lg:hidden bg-card border-b border-border h-14 px-4 flex items-center gap-3 shrink-0">
           <button onClick={() => setDrawer(true)} aria-label="Open menu">
             <MenuIcon className="size-5" />
           </button>
           <span className="font-display font-semibold">Aroma Admin</span>
         </header>
-        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-x-hidden">{children}</main>
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto">{children}</main>
       </div>
 
       {drawer && (

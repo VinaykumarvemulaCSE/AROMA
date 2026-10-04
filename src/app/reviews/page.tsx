@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Star } from "lucide-react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,30 @@ export default function Reviews() {
   const allReviews = useReviews((s) => s.reviews);
   const addReview = useReviews((s) => s.addReview);
   const reviews = allReviews.filter((r) => r.status === "approved");
+
+  const totalCount = reviews.length > 0 ? reviews.length : (settings?.reviewCount || 0);
+  const calculatedAvg =
+    reviews.length > 0
+      ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+      : (settings?.rating ? settings.rating.toFixed(1) : "4.8");
+
+  const numericAvg = parseFloat(calculatedAvg);
+
+  const dynamicBreakdown = React.useMemo(() => {
+    if (reviews.length === 0) return { 5: 80, 4: 15, 3: 5, 2: 0, 1: 0 };
+    const counts: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    reviews.forEach((r) => {
+      const star = Math.min(5, Math.max(1, Math.round(r.rating)));
+      counts[star] = (counts[star] || 0) + 1;
+    });
+    return {
+      5: Math.round((counts[5] / reviews.length) * 100),
+      4: Math.round((counts[4] / reviews.length) * 100),
+      3: Math.round((counts[3] / reviews.length) * 100),
+      2: Math.round((counts[2] / reviews.length) * 100),
+      1: Math.round((counts[1] / reviews.length) * 100),
+    };
+  }, [reviews]);
 
   useEffect(() => {
     fetchSettings();
@@ -54,17 +78,17 @@ export default function Reviews() {
 
         <div className="mt-8 grid md:grid-cols-3 gap-6">
           <div className="bg-card border border-border rounded-2xl p-6 text-center">
-            <p className="text-6xl font-display font-bold">{settings?.rating || 4.7}</p>
+            <p className="text-6xl font-display font-bold">{calculatedAvg}</p>
             <div className="flex items-center justify-center gap-0.5 mt-2">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Star
                   key={i}
-                  className={`size-4 ${i < Math.floor(settings?.rating || 4.7) ? "fill-gold text-gold" : "text-muted-foreground"}`}
+                  className={`size-4 ${i < Math.floor(numericAvg) ? "fill-gold text-gold" : "text-muted-foreground"}`}
                 />
               ))}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              {settings?.reviewCount || 1284} reviews
+              {totalCount} {totalCount === 1 ? "review" : "reviews"}
             </p>
           </div>
           <div className="bg-card border border-border rounded-2xl p-6 md:col-span-2">
@@ -74,11 +98,11 @@ export default function Reviews() {
                 <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
                   <div
                     className="h-full bg-gold"
-                    style={{ width: `${ratingBreakdown[s as 5]}%` }}
+                    style={{ width: `${dynamicBreakdown[s as keyof typeof dynamicBreakdown]}%` }}
                   />
                 </div>
                 <span className="text-xs text-muted-foreground w-10 text-right">
-                  {ratingBreakdown[s as 5]}%
+                  {dynamicBreakdown[s as keyof typeof dynamicBreakdown]}%
                 </span>
               </div>
             ))}

@@ -39,7 +39,7 @@ const heroSlides = [
   },
   {
     img: "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1200&q=75",
-    title: "A second home in Nalgonda.",
+    title: "A second home in your city.",
     sub: "Warm interiors, quiet corners, conversations that linger.",
   },
 ];
@@ -77,6 +77,15 @@ export default function Home() {
 
   const liveReviews = useReviews((s) => s.reviews);
 
+  const approvedReviews = useMemo(() => liveReviews.filter((r) => r.status === "approved"), [liveReviews]);
+  const calculatedRating = useMemo(() => {
+    if (approvedReviews.length > 0) {
+      return (approvedReviews.reduce((acc, r) => acc + r.rating, 0) / approvedReviews.length).toFixed(1);
+    }
+    return settings?.rating ? settings.rating.toFixed(1) : "4.8";
+  }, [approvedReviews, settings]);
+  const calculatedReviewCount = approvedReviews.length > 0 ? approvedReviews.length : (settings?.reviewCount || 0);
+
   // Show items flagged in Firebase; empty if none have been flagged yet.
   const specials = useMemo(() => menu.filter((m) => !!m.isDailySpecial), [menu]);
   const best = useMemo(() => menu.filter((m) => !!m.isBestseller), [menu]);
@@ -91,6 +100,8 @@ export default function Home() {
     }
     return list.slice(0, 3);
   }, [liveReviews]);
+
+  const activeCity = settings?.locationName || "Hyderabad";
 
   return (
     <SiteLayout>
@@ -126,11 +137,11 @@ export default function Home() {
           <div className="flex flex-wrap items-center gap-2 text-sm mb-1">
             <StoreStatusBadge />
             <span className="flex items-center gap-1 bg-white/15 backdrop-blur px-3 py-1 rounded-full text-xs">
-              <Star className="size-3.5 fill-gold text-gold" /> {settings?.rating || 4.7} ·{" "}
-              {settings?.reviewCount || 1284} reviews
+              <Star className="size-3.5 fill-gold text-gold" /> {calculatedRating} ·{" "}
+              {calculatedReviewCount} {calculatedReviewCount === 1 ? "review" : "reviews"}
             </span>
             <span className="hidden sm:inline-flex items-center gap-1 bg-white/15 backdrop-blur px-3 py-1 rounded-full text-xs">
-              <MapPin className="size-3.5" /> Nalgonda
+              <MapPin className="size-3.5" /> {activeCity}
             </span>
           </div>
           <h1 className="mt-4 font-display text-4xl sm:text-6xl lg:text-7xl font-bold leading-[1.05] max-w-3xl">
@@ -274,7 +285,7 @@ export default function Home() {
       {/* BESTSELLERS */}
       <Section
         title="Bestsellers"
-        sub="What Nalgonda is loving this week"
+        sub={`What ${activeCity} is loving this week`}
         link={{ href: "/menu", label: "View all" }}
       >
         <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">

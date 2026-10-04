@@ -120,7 +120,7 @@ export default function Staff() {
                   onChange={(e) => setF({ ...f, role: e.target.value })}
                   className="mt-1.5 h-9 w-full rounded-md border border-border bg-card px-3 text-sm"
                 >
-                  {["Owner", "Manager", "Chef", "Waiter", "Delivery"].map((r) => (
+                  {["Owner", "Manager", "Head Chef", "Rider / Delivery Partner", "Waiter"].map((r) => (
                     <option key={r}>{r}</option>
                   ))}
                 </select>
