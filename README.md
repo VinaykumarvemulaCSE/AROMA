@@ -1,73 +1,97 @@
-# Aroma Cafe ☕
+# Aroma Cafe
 
-A modern, responsive, and full-featured e-commerce and cafe management application built with Next.js and Firebase. This platform bridges the gap between digital ordering and in-store operations, offering a seamless storefront for customers and a powerful real-time kitchen dashboard for cafe staff.
+A full-stack cafe platform: a customer storefront, a real-time kitchen dashboard,
+and a rider navigation system built on a custom shortest-path router.
+
+Live: https://aromacafe.eu.cc
 
 ![Aroma Cafe](/public/hero-image.jpg)
 
-## 🎯 The Problem Solved
-Local cafes often struggle with managing in-store orders alongside online takeaways, leading to missed orders, long wait times, and a disconnected customer experience. They need a unified system that handles everything from table reservations to online ordering and real-time kitchen notifications without the high fees of third-party delivery apps. Aroma Cafe solves this by providing a unified platform where customers can order seamlessly and staff are instantly notified of new tasks.
+## What it does
 
-## 🌟 Key Features
+**Customers** browse the menu, check out as a guest or signed-in user, track the
+order live, reserve a table, and reorder a past order in one tap.
 
-### 🛒 For Customers
-- **Intuitive Menu Browsing**: Browse categories (Coffee, Bakery, Breakfast, etc.) with beautiful imagery and smooth animations.
-- **Smart Cart & Checkout**: Persistent cart state, guest checkout support, and secure order processing.
-- **1-Click Reorder**: Instantly re-populate your cart with your favorite past orders.
-- **Real-Time Order Tracking**: Track the status of your order live from preparation to delivery.
-- **Table Reservations**: Book a table with real-time slot availability.
-- **Secure Authentication**: Email/Password and Google OAuth sign-in.
+**Staff** run the cafe from a real-time dashboard: incoming orders, status
+changes, menu and image management, reservations, tables, coupons, reviews and
+settings. New orders trigger an audio alert so nothing sits unnoticed.
 
-### 💼 For Administrators
-- **Live Order Dashboard**: Real-time order monitoring with dynamic audio alerts (barista bell chimes) for new pending orders.
-- **Menu Management**: Full CRUD capabilities for menu items, including rich image uploads via Cloudinary.
-- **Reservation & Table Management**: View and manage bookings, and configure table availability visually.
-- **Role-Based Access Control**: Secure admin dashboard protected by custom Firebase claims and middleware.
+**Riders** get an in-app navigation screen instead of being pushed out to a
+third-party map — route, turns, voice prompts and multi-stop batches.
 
-## 🛠️ Tech Stack & Architecture
+## Stack
 
-- **Framework**: [Next.js 14+](https://nextjs.org/) (App Router, Server Actions, Server Components)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/) & [shadcn/ui](https://ui.shadcn.com/)
-- **Backend & Database**: [Firebase](https://firebase.google.com/) (Firestore, Auth, Admin SDK)
-- **State Management**: [Zustand](https://github.com/pmndrs/zustand)
-- **Form Validation**: [React Hook Form](https://react-hook-form.com/) & [Zod](https://zod.dev/)
-- **Image Hosting**: [Cloudinary](https://cloudinary.com/)
+- **Framework**: Next.js 16 (App Router) + React 19
+- **Language**: TypeScript
+- **UI**: Tailwind CSS 4 + shadcn/ui
+- **Data**: Firebase Firestore, Firebase Auth (email/password + Google)
+- **Server**: Next.js Server Actions, Firebase Admin SDK
+- **State**: Zustand
+- **Validation**: Zod (server-side)
+- **Media**: Cloudinary
+- **Maps**: Leaflet, with a hand-built Dijkstra router
 
-## ⚡ Performance & Approach
-- **Hybrid Rendering**: Utilized Next.js Server Components to minimize client-side JavaScript, ensuring fast initial page loads and strong SEO.
-- **Real-Time Sync**: Leveraged Firestore snapshot listeners combined with Zustand to create a snappy, live Point of Sale (POS) experience without unnecessary component re-renders.
-- **Optimized Media**: All uploaded menu images are processed and delivered via Cloudinary to ensure responsive, next-gen image formats are served globally.
+## Architecture
 
-## 🚀 Getting Started
+The UI is client-rendered so Firestore listeners can stay subscribed while a
+screen is open. Anything that must not run in the browser — checkout,
+reservations, coupons, email, Cloudinary uploads — is a Server Action that
+validates input with Zod before touching Firebase.
 
-### Prerequisites
-- Node.js 20+
-- A Firebase Project (with Firestore and Auth enabled)
-- A Cloudinary Account
+Checkout never trusts the cart. The order action re-reads every menu item,
+rejects unavailable ones, recomputes subtotal, GST and delivery from Firestore
+settings, and re-checks the coupon's status, minimum order and usage cap.
 
-### 1. Clone & Install
+Admin access is controlled by an `admin` custom claim, enforced in Firestore
+security rules — not by hiding the route.
+
+## Rider navigation
+
+A weighted graph is built from the store, road junctions and delivery stops, and
+Dijkstra picks the shortest path with traffic-weighted edge costs. The route is
+drawn with Leaflet; haversine distance drives step detection, maneuver prompts
+and voice guidance via SpeechSynthesis. Multi-stop batches are ordered on the
+same graph.
+
+Known limitation: the graph is synthetic, so the drawn line connects the store,
+junctions and stops rather than following real road geometry. A production build
+would keep Dijkstra for stop ordering and fetch geometry from OSRM.
+
+## Getting started
+
+Prerequisites: Node.js 22.12+, a Firebase project with Auth and Firestore, and a
+Cloudinary account.
+
 ```bash
 git clone https://github.com/VinaykumarvemulaCSE/AROMA.git
 cd AROMA
 npm install
-```
-
-### 2. Environment Variables
-Copy `.env.example` to `.env` and fill in your Firebase and Cloudinary credentials:
-```bash
-cp .env.example .env
-```
-
-### 3. Run Development Server
-```bash
+cp .env.example .env   # fill in Firebase, Cloudinary, SMTP and admin settings
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## 🔒 Firebase Security Rules
-Ensure you deploy the included Firestore rules and composite indexes to secure the database:
+Open http://localhost:3000.
+
+### Admin bootstrap
+
+```bash
+npm run set-admin -- you@example.com                    # grant the admin custom claim
+npm run set-admin-password -- you@example.com "NewPass"  # set or rotate the password
+```
+
+### Deploy rules and indexes
+
 ```bash
 firebase deploy --only firestore:rules,firestore:indexes
 ```
 
-## 📝 License
-This project is proprietary and confidential.
+## Known limitations
+
+- Route geometry is synthetic (see above).
+- Reviews are approved manually from the admin dashboard, so the public list only
+  shows what staff have cleared.
+- Payment is not integrated; orders are confirmed over WhatsApp/SMTP.
+
+## License
+
+Academic project. Not licensed for commercial use.
