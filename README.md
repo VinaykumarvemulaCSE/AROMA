@@ -5,7 +5,7 @@ and a rider navigation system built on a custom shortest-path router.
 
 Live: https://aromacafe.eu.cc
 
-![Aroma Cafe](/public/hero-image.jpg)
+[![Aroma Cafe storefront](https://res.cloudinary.com/dgelvlvqs/image/upload/w_1200,q_auto,f_auto/v1792617687/portfolio/fjjk3cgilrsaatn444dz.jpg)](https://aromacafe.eu.cc)
 
 ## What it does
 
